@@ -12,4 +12,4 @@ As a Senior Cloud Systems Engineer, I wanted this site to reflect my engineering
 
 ## Live Deployment
 This project is automatically deployed and hosted via GitHub Pages. 
-👉 **[https://github.com/r3db0xd/r3db0xd.github.io]**
+👉 **[https://r3db0xd.github.io]**
