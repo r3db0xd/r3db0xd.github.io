@@ -1,0 +1,1300 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rishab Dhar — Cloud Architecture & SRE</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  /* =========================================
+     DARK MODE (The Matrix)
+     ========================================= */
+  --bg: #020402;          
+  --surface: rgba(5, 12, 8, 0.90); 
+  --ink: #FFFFFF;         
+  --ink2: #cbd5e1;        
+  --muted: #8a9c91;       
+  
+  --accent: #00FF41;      
+  --accent-dark: #008F11;
+  --accent-glow: rgba(0, 255, 65, 0.25);
+  --accent-faint: rgba(0, 255, 65, 0.1);
+  
+  --border: rgba(0, 255, 65, 0.25); 
+  --border-strong: rgba(0, 255, 65, 0.5);
+  
+  --shadow-sm: 0 4px 12px rgba(0, 0, 0, 0.8);
+  --shadow-hover: 0 20px 40px rgba(0, 0, 0, 0.95), 0 0 20px var(--accent-glow);
+  --term-bg: rgba(2, 4, 2, 0.95);
+  
+  --term-key: #00FF41;
+  --term-val: #b5c7bc;
+  --term-str: #FFFFFF;
+}
+
+[data-theme="light"] {
+  /* =========================================
+     LIGHT MODE (Cloud Slate)
+     ========================================= */
+  --bg: #F0F4F8;          
+  --surface: rgba(255, 255, 255, 0.85);
+  --ink: #0F172A;         
+  --ink2: #334155;        
+  --muted: #64748B;       
+  
+  --accent: #2563EB;      
+  --accent-dark: #1E40AF; 
+  --accent-glow: rgba(37, 99, 235, 0.25);
+  --accent-faint: rgba(37, 99, 235, 0.1);
+  
+  --border: rgba(37, 99, 235, 0.15);
+  --border-strong: rgba(37, 99, 235, 0.3);
+  
+  --shadow-sm: 0 4px 12px rgba(0, 0, 0, 0.05);
+  --shadow-hover: 0 20px 40px rgba(0, 0, 0, 0.1), 0 8px 16px rgba(37, 99, 235, 0.15);
+  --term-bg: #FFFFFF;
+  
+  --term-key: #2563EB;
+  --term-val: #059669;
+  --term-str: #0F172A;
+}
+
+:root {
+  --radius-lg: 24px;
+  --radius: 16px;
+  --spring: 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+  --transition: 0.3s ease-out;
+}
+
+html { scroll-behavior: smooth; cursor: none; } 
+body { 
+    background-color: var(--bg); color: var(--ink); 
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; 
+    -webkit-font-smoothing: antialiased; overflow-x: hidden;
+    transition: background-color 0.5s ease, color 0.5s ease;
+}
+
+/* =========================================
+   DYNAMIC BACKGROUND CANVAS
+   ========================================= */
+#dynamic-bg {
+    position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+    z-index: -2; pointer-events: none; transition: opacity 0.5s ease;
+}
+
+html[data-theme="dark"] #dynamic-bg { opacity: 0.25; } 
+html[data-theme="light"] #dynamic-bg { opacity: 1; } 
+
+body::before {
+    content: ''; position: fixed; inset: 0; z-index: -1;
+    background: transparent; pointer-events: none; transition: background 0.8s ease-out;
+}
+html[data-theme="light"] body::before {
+    background: 
+        radial-gradient(circle at 50% 0%, rgba(37, 99, 235, 0.05), transparent 60%),
+        radial-gradient(circle at 100% 100%, rgba(37, 99, 235, 0.03), transparent 50%);
+    background-size: 100% 100%;
+}
+
+/* =========================================
+   CUSTOM CURSOR
+   ========================================= */
+.cursor-dot { 
+    width: 6px; height: 6px; background-color: var(--accent); 
+    border-radius: 50%; position: fixed; top: 0; left: 0; 
+    pointer-events: none; z-index: 999999; transform: translate(-50%, -50%); 
+    transition: width 0.2s, height 0.2s, background-color 0.2s, opacity 0.2s; 
+}
+.cursor-outline { 
+    width: 32px; height: 32px; border: 1.5px solid var(--accent); 
+    border-radius: 50%; position: fixed; top: 0; left: 0; 
+    pointer-events: none; z-index: 999998; transform: translate(-50%, -50%); 
+    transition: width 0.2s, height 0.2s, background-color 0.2s, opacity 0.2s, border-color 0.5s; 
+}
+@media(max-width: 768px) { html { cursor: auto; } .cursor-dot, .cursor-outline { display: none; } }
+
+.scroll-progress { 
+    position: fixed; top: 0; left: 0; height: 3px; background: var(--accent); 
+    width: 0%; z-index: 999999; transition: width 0.1s; 
+}
+
+.wrap { max-width: 1100px; margin: 0 auto; padding: 0 24px 100px; position: relative; z-index: 10; }
+
+/* =========================================
+   NAVIGATION & THEME TOGGLE
+   ========================================= */
+nav {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 16px 24px; border-bottom: 1px solid var(--border);
+    position: sticky; top: 0; background: var(--surface); 
+    backdrop-filter: saturate(200%) blur(30px); -webkit-backdrop-filter: saturate(200%) blur(30px);
+    z-index: 100; margin: 0 -24px; transition: background 0.5s, border-color 0.5s;
+}
+.nav-logo { font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 18px; display: flex; align-items: center; gap: 10px; color: var(--ink); }
+.nav-logo .dot { width: 8px; height: 8px; background: var(--accent); border-radius: 50%; box-shadow: 0 0 12px var(--accent); animation: pulse 2s infinite; }
+@keyframes pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.5; transform: scale(0.8); } }
+
+.nav-links { display: flex; gap: 12px; align-items: center; }
+.nav-links a { color: var(--ink2); text-decoration: none; font-size: 14px; font-weight: 500; padding: 8px 16px; border-radius: 99px; transition: all var(--transition); cursor: none;}
+.nav-links a:hover { color: var(--accent); background: var(--accent-faint); transform: translateY(-1px); }
+
+.theme-toggle {
+    background: transparent; border: 1px solid var(--border-strong);
+    color: var(--ink); font-size: 18px; width: 40px; height: 40px;
+    border-radius: 50%; display: flex; align-items: center; justify-content: center;
+    cursor: none; transition: all var(--spring); backdrop-filter: blur(10px);
+}
+.theme-toggle:hover { background: var(--accent-faint); border-color: var(--accent); color: var(--accent); transform: scale(1.1); }
+.theme-toggle .moon { display: none; }
+html[data-theme="light"] .theme-toggle .sun { display: none; }
+html[data-theme="light"] .theme-toggle .moon { display: block; }
+
+/* =========================================
+   HERO SECTION
+   ========================================= */
+.hero { padding: 120px 0 80px; display: grid; grid-template-columns: 1.2fr 1fr; gap: 60px; align-items: center; }
+@media(max-width: 850px){ .hero { grid-template-columns: 1fr; text-align: left; } }
+.hero-tag { display: inline-flex; align-items: center; gap: 10px; background: var(--surface); border: 1px solid var(--border-strong); border-radius: 99px; padding: 8px 20px; font-size: 13px; font-weight: 600; color: var(--ink); margin-bottom: 32px; backdrop-filter: blur(20px); box-shadow: var(--shadow-sm);}
+.hero-tag i { color: var(--accent); font-style: normal; }
+.hero-name { font-family: 'Space Grotesk', sans-serif; font-size: clamp(52px, 6.5vw, 84px); font-weight: 700; line-height: 1.05; letter-spacing: -2px; color: var(--ink); margin-bottom: 20px; }
+.hero-role { font-size: 22px; font-weight: 500; color: var(--accent); margin-bottom: 28px; letter-spacing: -0.3px; display: flex; align-items: center; gap: 8px; font-family: 'Space Grotesk', sans-serif; }
+.hero-desc { font-size: 16px; line-height: 1.8; color: var(--ink2); max-width: 560px; margin-bottom: 48px; }
+.hero-desc strong { color: var(--ink); font-weight: 600; }
+
+.hero-btns { display: flex; gap: 16px; flex-wrap: wrap; }
+.btn { font-family: 'Inter', sans-serif; font-size: 15px; font-weight: 600; padding: 16px 32px; border-radius: 99px; text-decoration: none; display: inline-flex; align-items: center; gap: 8px; transition: all var(--spring); border: none; cursor: none; }
+.btn-primary { background: var(--accent); color: #000; box-shadow: 0 4px 15px var(--accent-glow); }
+.btn-primary:hover { background: var(--accent-dark); transform: translateY(-4px); box-shadow: 0 12px 30px var(--accent-glow); color: #FFF; }
+.btn-outline { background: var(--surface); color: var(--ink); border: 1px solid var(--border-strong); backdrop-filter: blur(20px); }
+.btn-outline:hover { border-color: var(--accent); background: var(--accent-faint); color: var(--accent); transform: translateY(-4px); }
+html[data-theme="light"] .btn-primary { color: #fff; }
+
+/* =========================================
+   HERO GRAPHICS: MESH & ISOMETRIC
+   ========================================= */
+.hero-graphics { position: relative; width: 100%; aspect-ratio: 1; display: flex; align-items: center; justify-content: center;}
+
+.light-graphic { display: none; width: 100%; height: 100%; align-items: center; justify-content: center; position: relative;}
+.dark-graphic { display: flex; width: 100%; height: 100%; align-items: center; justify-content: center; position: relative;}
+
+html[data-theme="light"] .light-graphic { display: flex; }
+html[data-theme="light"] .dark-graphic { display: none; }
+
+/* =========================================
+   LIGHT MODE: AUTONOMOUS FLUID CAROUSEL
+   ========================================= */
+.iso-wrapper { position: relative; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; }
+
+/* The 3D Scene */
+.iso-scene { 
+    perspective: 1200px; width: 340px; height: 340px; 
+    display: flex; align-items: center; justify-content: center; position: absolute;
+}
+.iso-stack { 
+    transform-style: preserve-3d; transform: rotateX(60deg) rotateZ(-45deg); 
+    position: relative; width: 240px; height: 240px; 
+}
+
+/* The Glass Leaves */
+.iso-layer { 
+    position: absolute; width: 240px; height: 240px; 
+    border: 2px solid var(--accent); border-radius: 16px; backdrop-filter: blur(8px); 
+    display: flex; align-items: center; justify-content: center; 
+    transition: transform 1.2s cubic-bezier(0.25, 1, 0.5, 1), background 1.2s ease, opacity 1.2s ease, box-shadow 1.2s ease;
+    transform-style: preserve-3d;
+}
+.iso-layer::before, .iso-layer::after { content: ''; position: absolute; background: rgba(37, 99, 235, 0.2); border: 2px solid var(--accent); }
+.iso-layer::before { width: 100%; height: 16px; bottom: -18px; left: -2px; transform-origin: top; transform: rotateX(-90deg); }
+.iso-layer::after { width: 16px; height: 100%; right: -18px; top: -2px; transform-origin: left; transform: rotateY(90deg); }
+
+/* Autonomous Depth Positions */
+.iso-layer.pos-1 { 
+    transform: translateZ(160px); z-index: 3; opacity: 1; 
+    background: rgba(37, 99, 235, 0.15); 
+    box-shadow: inset 0 0 40px rgba(37, 99, 235, 0.3), 0 20px 40px rgba(37, 99, 235, 0.2); 
+}
+.iso-layer.pos-2 { 
+    transform: translateZ(80px); z-index: 2; opacity: 0.6; 
+    background: rgba(37, 99, 235, 0.05); 
+    box-shadow: inset 0 0 20px rgba(37, 99, 235, 0.1); 
+}
+.iso-layer.pos-3 { 
+    transform: translateZ(0px); z-index: 1; opacity: 0.2; 
+    background: rgba(37, 99, 235, 0.02); 
+    box-shadow: inset 0 0 10px rgba(37, 99, 235, 0.05); 
+}
+
+/* Faint Painted Text on the Glass Layers (fades out when reaching the top) */
+.painted-title {
+    position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+    font-family: 'JetBrains Mono', monospace; font-size: 26px; font-weight: bold; color: var(--accent);
+    opacity: 0.4; transition: opacity 0.6s ease; text-shadow: 0 4px 10px rgba(37, 99, 235, 0.2);
+}
+.iso-layer.pos-1 .painted-title { opacity: 0; }
+
+/* THE 2D POP-UP OVERLAY (100% Free from 3D Distortion) */
+.iso-2d-overlay {
+    position: absolute; inset: 0; pointer-events: none; z-index: 1000;
+    perspective: 1200px; /* Allows fake 3D peels purely in 2D space */
+}
+
+/* Centers the group directly over the top pos-1 glass pane */
+.iso-popup-group {
+    position: absolute; top: 50%; left: 50%;
+    margin-top: -80px; margin-left: -60px; 
+    display: flex; align-items: center; justify-content: flex-start;
+    pointer-events: none;
+}
+
+/* The Sticker Title (Peels Off) */
+.popup-sticker {
+    background: var(--accent); color: white; padding: 6px 16px; border-radius: 8px;
+    font-family: 'JetBrains Mono', monospace; font-size: 16px; font-weight: bold;
+    box-shadow: 0 10px 25px rgba(37,99,235,0.4);
+    
+    /* Starts flat on the "glass" */
+    transform: rotateX(60deg) rotateZ(-45deg) translate3d(0, 40px, -40px);
+    opacity: 0; pointer-events: none;
+    transition: all 0.8s cubic-bezier(0.25, 1, 0.5, 1);
+    transform-origin: bottom center;
+}
+
+.iso-popup-group.active .popup-sticker {
+    /* Peels up to face the user perfectly flat */
+    transform: rotateX(0deg) rotateZ(0deg) translate3d(0, 0, 0);
+    opacity: 1; pointer-events: auto;
+}
+
+/* The Info Card (Slides in next to sticker) */
+.popup-card {
+    background: #FFFFFF; padding: 18px 24px; border: 2px solid var(--accent); 
+    color: #0F172A; border-radius: 12px; width: 240px; font-size: 13px; font-family: 'Inter', sans-serif; font-weight: 500;
+    text-align: left; box-shadow: 0 25px 50px rgba(0,0,0,0.15); pointer-events: auto;
+    margin-left: 20px;
+    
+    /* Slides in from left with slight delay */
+    transform: translateX(-20px); opacity: 0; visibility: hidden;
+    transition: all 0.6s cubic-bezier(0.25, 1, 0.5, 1) 0.2s; 
+}
+.iso-popup-group.active .popup-card {
+    transform: translateX(0); opacity: 1; visibility: visible;
+}
+.popup-card strong { color: var(--accent); display: block; margin-bottom: 6px; font-size: 15px; font-family: 'Space Grotesk', sans-serif;}
+
+
+/* =========================================
+   DARK MODE: HEX MESH AUTO-HEALER
+   ========================================= */
+.hex-mesh { display: flex; flex-wrap: wrap; width: 340px; justify-content: center; position: relative;}
+.hex-row { display: flex; width: 100%; justify-content: center; margin-bottom: -15px; }
+.hex { width: 75px; height: 86px; background: rgba(0, 255, 65, 0.15); border-radius: 4px; clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%); margin: 0 4px; display: flex; flex-direction: column; align-items: center; justify-content: center; font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 600; color: var(--accent); transition: all 0.4s; position: relative;}
+.hex::before { content:''; position: absolute; inset: 2px; background: #05080F; clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%); z-index: -1; }
+
+.hex.active { background: var(--accent); color: #000; box-shadow: 0 0 20px var(--accent-glow); transform: scale(1.05); z-index: 5;}
+.hex.active::before { background: rgba(0, 255, 65, 0.2); }
+.hex-stat { font-size: 16px; font-weight: bold; font-family: 'Space Grotesk', sans-serif;}
+
+/* JS Controlled Crash & Heal Animations */
+.hex.crashing { background: #EF4444; color: #EF4444; transform: scale(0.9); z-index: 6;}
+.hex.crashing::before { background: rgba(239, 68, 68, 0.1); }
+.hex.healing { background: #00FF41; color: #000; transform: scale(1.1); box-shadow: 0 0 30px rgba(0, 255, 65, 0.6); z-index: 100;}
+.hex.healing::before { background: rgba(0, 255, 65, 0.3); }
+
+/* The Insight Popout */
+.hex-insight { 
+    position: absolute; bottom: 120%; left: 50%; transform: translateX(-50%) translateY(10px); 
+    background: var(--term-bg); border: 1px solid var(--accent); color: var(--accent); padding: 8px 14px; border-radius: 6px; 
+    font-size: 11px; font-weight: 700; white-space: nowrap; opacity: 0; 
+    pointer-events: none; transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1); 
+    box-shadow: 0 10px 25px rgba(0,255,65,0.2); font-family: 'JetBrains Mono', monospace; z-index: 150;
+}
+.hex.healing .hex-insight { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+/* Badges */
+.badges { display: flex; flex-wrap: wrap; gap: 12px; margin: 0 0 80px; justify-content: center; }
+.badge { display: inline-flex; align-items: center; gap: 10px; padding: 12px 24px; border-radius: 99px; font-size: 14px; font-weight: 600; background: var(--surface); border: 1px solid var(--border-strong); color: var(--ink); backdrop-filter: blur(20px); transition: all var(--spring); box-shadow: var(--shadow-sm);}
+.badge:hover { transform: translateY(-4px); border-color: var(--accent); color: var(--accent); background: var(--accent-faint); box-shadow: 0 10px 25px var(--accent-glow); }
+.badge i { color: var(--accent); font-style: normal; font-size: 18px; }
+
+/* =========================================
+   DYNAMIC TERMINAL
+   ========================================= */
+.terminal { 
+    background: var(--term-bg); border-radius: var(--radius-lg); 
+    padding: 32px; margin-bottom: 120px; box-shadow: var(--shadow-sm); 
+    border: 1px solid var(--border-strong); position: relative; 
+    overflow: hidden; transition: background 0.5s, border-color 0.5s; 
+    font-family: 'JetBrains Mono', monospace; font-size: 14px; 
+    line-height: 1.8; color: var(--term-str); min-height: 480px;
+    backdrop-filter: blur(30px);
+}
+.terminal::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: linear-gradient(90deg, transparent, var(--accent), transparent); opacity: 0.8; }
+.term-bar { display: flex; align-items: center; gap: 10px; margin-bottom: 28px; padding-bottom: 20px; border-bottom: 1px solid var(--border); }
+.term-dot { width: 14px; height: 14px; border-radius: 50%; }
+.term-dot:nth-child(1) { background: #ff5f57; }
+.term-dot:nth-child(2) { background: #febc2e; }
+.term-dot:nth-child(3) { background: #28c840; }
+.term-title { font-size: 13px; color: var(--muted); margin: 0 auto; font-family: -apple-system, sans-serif; font-weight: 500; letter-spacing: 0.5px;}
+.term-content { display: flex; flex-direction: column; }
+.term-prompt { color: var(--accent); font-weight: 600; margin-right: 10px; }
+.term-key { color: var(--term-key); font-weight: 600; }
+.term-val { color: var(--term-val); }
+.term-cursor { display: inline-block; width: 10px; height: 18px; background: var(--accent); vertical-align: middle; margin-left: 4px; animation: blink 1s step-end infinite; }
+@keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+
+/* =========================================
+   CARDS & SECTIONS
+   ========================================= */
+.section { margin-bottom: 120px; }
+.section-head { display: flex; align-items: center; gap: 16px; margin-bottom: 56px; }
+.section-icon { width: 48px; height: 48px; background: var(--accent-faint); border-radius: 12px; display: flex; align-items: center; justify-content: center; color: var(--accent); font-size: 22px; font-style: normal; border: 1px solid var(--border-strong); }
+.section-title { font-family: 'Space Grotesk', sans-serif; font-size: 36px; font-weight: 700; color: var(--ink); letter-spacing: -0.5px; }
+
+/* Experience */
+.exp-list { display: flex; flex-direction: column; gap: 32px; }
+.exp-card { background: var(--surface); border: 1px solid var(--border-strong); border-radius: var(--radius-lg); padding: 48px; transition: all var(--spring); position: relative; overflow: hidden; backdrop-filter: blur(20px); cursor: none; box-shadow: var(--shadow-sm);}
+.exp-card:hover { border-color: var(--accent); box-shadow: var(--shadow-hover); }
+.exp-top { display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 16px; margin-bottom: 16px; }
+.exp-title { font-family: 'Space Grotesk', sans-serif; font-size: 24px; font-weight: 700; color: var(--ink); margin-bottom: 6px;}
+.exp-org { font-size: 16px; font-weight: 600; color: var(--muted); }
+.exp-chip { font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 600; padding: 8px 16px; border-radius: 8px; background: var(--accent-faint); color: var(--accent); border: 1px solid var(--border-strong); }
+.exp-bullets { list-style: none; display: flex; flex-direction: column; gap: 18px; margin-top: 28px;}
+.exp-bullets li { font-size: 15.5px; color: var(--ink); line-height: 1.8; padding-left: 36px; position: relative; opacity: 0; transform: translateY(20px); transition: all 0.6s cubic-bezier(0.16, 1, 0.3, 1); }
+.exp-bullets li::before { content: '▹'; position: absolute; left: 0; font-size: 20px; top: 0px; color: var(--accent); font-family: 'JetBrains Mono', monospace; font-weight: bold;}
+.exp-bullets.visible li { opacity: 1; transform: translateY(0); }
+
+/* Projects */
+.projects-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 32px; }
+.flip-card { background: transparent; height: 380px; perspective: 1500px; cursor: none; }
+.flip-card-inner { position: relative; width: 100%; height: 100%; text-align: left; transition: transform 0.8s var(--spring); transform-style: preserve-3d; }
+.flip-card:hover .flip-card-inner { transform: rotateY(180deg); }
+
+.flip-card-front, .flip-card-back {
+    position: absolute; width: 100%; height: 100%; backface-visibility: hidden;
+    background: var(--surface); border: 1px solid var(--border-strong); border-radius: var(--radius-lg); 
+    padding: 40px; display: flex; flex-direction: column; gap: 20px; backdrop-filter: blur(20px); box-shadow: var(--shadow-sm);
+}
+.flip-card-front { z-index: 2; }
+.flip-card-back { transform: rotateY(180deg); border-color: var(--accent); box-shadow: var(--shadow-hover); background: var(--term-bg);}
+
+.proj-header { display: flex; align-items: center; gap: 16px; margin-bottom: 8px; }
+.proj-icon { font-size: 28px; font-style: normal; background: var(--accent-faint); padding: 12px; border-radius: 12px; border: 1px solid var(--border-strong); color: var(--accent);}
+.proj-name { font-family: 'Space Grotesk', sans-serif; font-size: 22px; font-weight: 700; color: var(--ink); line-height: 1.3;}
+.proj-desc { font-size: 15px; color: var(--ink2); line-height: 1.8; flex: 1; }
+.proj-tags { display: flex; flex-wrap: wrap; gap: 10px; margin-top: auto; padding-top: 28px; border-top: 1px solid var(--border); }
+.proj-tag { font-family: 'JetBrains Mono', monospace; font-size: 12.5px; font-weight: 500; padding: 8px 14px; border-radius: 6px; background: transparent; color: var(--ink); border: 1px solid var(--border-strong);}
+
+.flip-card-back h3 { font-family: 'Space Grotesk', sans-serif; font-size: 18px; color: var(--accent); margin-bottom: 10px; border-bottom: 1px solid var(--border); padding-bottom: 10px;}
+.flip-metrics { display: flex; gap: 16px; margin-bottom: 16px; }
+.f-metric { background: var(--accent-faint); border: 1px solid var(--border-strong); padding: 10px; border-radius: 8px; flex: 1; text-align: center;}
+.f-val { font-family: 'Space Grotesk', sans-serif; font-size: 20px; font-weight: 700; color: var(--ink); display: block;}
+.f-lbl { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; font-weight: 600;}
+.f-bullets { list-style: none; display: flex; flex-direction: column; gap: 10px; }
+.f-bullets li { font-size: 13.5px; color: var(--ink2); line-height: 1.6; padding-left: 20px; position: relative; }
+.f-bullets li::before { content: '>'; position: absolute; left: 0; color: var(--accent); font-family: 'JetBrains Mono', monospace; font-weight: bold;}
+
+/* =========================================
+   RECRUITER ASSETS SECTION
+   ========================================= */
+.assets-grid { display: flex; justify-content: center; gap: 24px; flex-wrap: wrap; margin-top: 20px; }
+.asset-card {
+    display: flex; align-items: center; gap: 20px; padding: 24px 32px;
+    background: var(--surface); border: 1px solid var(--border-strong);
+    border-radius: var(--radius-lg); text-decoration: none; color: var(--ink);
+    transition: all var(--spring); backdrop-filter: blur(20px);
+    box-shadow: var(--shadow-sm); cursor: none; flex: 1; max-width: 450px;
+}
+.asset-card:hover { border-color: var(--accent); box-shadow: var(--shadow-hover); transform: translateY(-4px); }
+.asset-icon { font-size: 32px; display: flex; align-items: center; justify-content: center; background: var(--accent-faint); width: 60px; height: 60px; border-radius: 16px; border: 1px solid var(--border); color: var(--accent);}
+.asset-info h3 { font-family: 'Space Grotesk', sans-serif; font-size: 18px; font-weight: 700; margin-bottom: 4px; }
+.asset-info p { font-size: 14px; color: var(--muted); }
+
+/* =========================================
+   CONTACT INFO BOX (ENCRYPTED)
+   ========================================= */
+.surprise-container { width: 100%; max-width: 700px; margin: 0 auto; perspective: 1200px;}
+.surprise-box {
+    background: var(--surface); border: 1px solid var(--border-strong); border-radius: var(--radius-lg); 
+    padding: 60px 40px; text-align: center; cursor: none; transition: all var(--spring);
+    backdrop-filter: blur(20px); position: relative; overflow: hidden; transform-style: preserve-3d;
+}
+.surprise-box:hover { border-color: var(--accent); box-shadow: var(--shadow-hover); transform: translateZ(20px); }
+
+.surprise-box::after {
+    content: ''; position: absolute; top: -50%; left: -50%; width: 200%; height: 200%;
+    background: linear-gradient(rgba(255,255,255,0), var(--accent-faint), rgba(255,255,255,0));
+    transform: translateY(-100%) rotate(45deg); transition: transform 0.8s ease-in-out;
+    pointer-events: none; z-index: 1;
+}
+.surprise-box:hover::after { transform: translateY(100%) rotate(45deg); }
+
+.surprise-icon { font-size: 48px; margin-bottom: 24px; display: inline-block; filter: drop-shadow(0 0 15px var(--accent-glow)); transition: all 0.3s; }
+.surprise-title { font-family: 'Space Grotesk', sans-serif; font-size: 28px; font-weight: 700; color: var(--ink); margin-bottom: 12px; }
+.surprise-subtitle { font-size: 15px; color: var(--ink2); font-family: 'JetBrains Mono', monospace; }
+
+.contact-data {
+    display: flex; flex-direction: column; gap: 20px; align-items: center;
+    margin-top: 40px; opacity: 0; height: 0; visibility: hidden; transition: opacity 0.5s ease;
+}
+.surprise-box.unlocked .contact-data { opacity: 1; height: auto; visibility: visible; }
+.surprise-box.unlocked .surprise-subtitle { display: none; }
+.surprise-box.unlocked .surprise-icon { transform: scale(0.8); color: var(--accent); }
+
+.contact-link {
+    display: flex; align-items: center; justify-content: space-between; width: 100%; max-width: 400px;
+    padding: 16px 24px; background: rgba(0,0,0,0.4); border: 1px solid var(--border-strong);
+    border-radius: 12px; text-decoration: none; color: var(--ink); font-family: 'JetBrains Mono', monospace;
+    font-size: 14px; transition: all 0.3s; z-index: 2; position: relative;
+}
+html[data-theme="light"] .contact-link { background: rgba(255,255,255,0.7); }
+.contact-link:hover { border-color: var(--accent); background: var(--accent-faint); transform: scale(1.02); }
+.c-label { color: var(--muted); font-weight: 600; }
+.c-val { color: var(--accent); font-weight: bold; letter-spacing: 0.5px;}
+
+/* =========================================
+   FLASHCARD CUE WIDGET (Dev Humor)
+   ========================================= */
+.cue-widget-btn {
+    position: fixed; bottom: 30px; right: 30px;
+    background: var(--surface); border: 1px solid var(--border-strong);
+    width: 60px; height: 60px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+    box-shadow: var(--shadow-sm); cursor: none; z-index: 1000;
+    font-family: 'JetBrains Mono', monospace; font-weight: bold; color: var(--accent); font-size: 20px;
+    transition: all var(--spring); backdrop-filter: blur(10px);
+}
+.cue-widget-btn:hover { transform: scale(1.1) translateY(-5px); box-shadow: var(--shadow-hover); background: var(--accent-faint); }
+
+.cue-modal {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(8px);
+    z-index: 1001; display: flex; align-items: center; justify-content: center;
+    opacity: 0; visibility: hidden; transition: all 0.3s ease; perspective: 1200px;
+}
+.cue-modal.active { opacity: 1; visibility: visible; cursor: none;}
+
+.cue-card {
+    width: 90%; max-width: 600px; height: 350px; position: relative;
+    transform-style: preserve-3d; transition: transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.cue-card.flipped { transform: rotateY(180deg); }
+
+.cue-face {
+    position: absolute; width: 100%; height: 100%; backface-visibility: hidden;
+    background: var(--term-bg); border: 1px solid var(--accent); border-radius: var(--radius-lg);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    padding: 40px; box-shadow: 0 20px 50px rgba(0,0,0,0.5); text-align: center;
+}
+.cue-back {
+    transform: rotateY(180deg); align-items: flex-start; justify-content: center; text-align: left;
+}
+.cue-icon { font-size: 40px; margin-bottom: 20px; color: var(--accent); }
+.cue-title { font-family: 'Space Grotesk', sans-serif; font-size: 24px; font-weight: 700; color: var(--ink); margin-bottom: 10px;}
+.cue-sub { font-size: 14px; color: var(--muted); }
+
+.cue-text {
+    font-family: 'JetBrains Mono', monospace; font-size: 16px; line-height: 1.8; color: var(--term-val);
+    white-space: pre-wrap; width: 100%;
+}
+.cue-text span.kw { color: var(--term-key); font-weight: bold; }
+.cue-text span.str { color: var(--accent); }
+
+.close-cue {
+    position: absolute; top: 20px; right: 20px; background: none; border: none;
+    color: var(--muted); font-size: 24px; cursor: none; transition: color 0.2s;
+}
+.close-cue:hover { color: var(--accent); }
+
+footer { text-align: center; padding: 64px 0 40px; font-size: 14.5px; color: var(--muted); border-top: 1px solid var(--border); margin-top: 100px; }
+.footer-logo { font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 24px; color: var(--ink); margin-bottom: 16px; display: flex; justify-content: center; align-items: center; gap: 10px;}
+.footer-logo .dot { width: 10px; height: 10px; background: var(--accent); border-radius: 50%; box-shadow: 0 0 12px var(--accent); }
+</style>
+</head>
+<body>
+
+<canvas id="dynamic-bg"></canvas>
+
+<!-- Floating Dev Humor Widget -->
+<div class="cue-widget-btn" id="cue-btn" title="Decrypt Snippet">
+    {;}
+</div>
+
+<div class="cue-modal" id="cue-modal">
+    <div class="cue-card" id="cue-card">
+        <div class="cue-face cue-front">
+            <button class="close-cue">&times;</button>
+            <div class="cue-icon">🛡️</div>
+            <div class="cue-title">Initiating Handshake...</div>
+            <div class="cue-sub">Decrypting secure developer logs</div>
+        </div>
+        <div class="cue-face cue-back">
+            <button class="close-cue">&times;</button>
+            <div class="cue-text" id="cue-text"></div>
+        </div>
+    </div>
+</div>
+
+<div class="scroll-progress" id="scroll-progress"></div>
+<div class="cursor-dot"></div>
+<div class="cursor-outline"></div>
+
+<div class="wrap">
+<nav>
+  <div class="nav-logo"><div class="dot"></div> Rishab Dhar</div>
+  <div class="nav-links">
+    <a href="#exp">Impact</a>
+    <a href="#projects">Architecture</a>
+    <a href="#assets">Assets</a>
+    <a href="#contact">Contact</a>
+    <button id="theme-toggle" class="theme-toggle" aria-label="Toggle Theme">
+      <span class="sun">☀️</span>
+      <span class="moon">🌙</span>
+    </button>
+  </div>
+</nav>
+
+<div class="hero">
+  <div class="hero-left">
+    <div class="hero-tag"><i>🌍</i> Available for Staff & Lead Cloud Roles Globally</div>
+    <h1 class="hero-name">Rishab Dhar</h1>
+    <p class="hero-role"><i>⚡</i> Senior Cloud Engineer & SRE</p>
+    <p class="hero-desc">I build <strong>resilient, self-healing cloud infrastructure</strong> that scales globally. By blending deep orchestration expertise with intelligent automation, I help engineering teams ship faster, drastically reduce operational toil, and maintain highly available platforms.</p>
+    <div class="hero-btns">
+      <a href="#exp" class="btn btn-primary">Explore My Impact</a>
+      <a href="https://linkedin.com/in/rishab-dhar-69298911b" target="_blank" class="btn btn-outline">Access LinkedIn Protocol</a>
+    </div>
+  </div>
+  
+  <div class="hero-graphics">
+      <!-- Light Mode: Autonomous Isometric Stack -->
+      <div class="light-graphic">
+          <div class="iso-wrapper">
+              
+              <!-- 3D Scene -->
+              <div class="iso-scene">
+                  <div class="iso-stack" id="iso-stack">
+                      
+                      <div class="iso-layer pos-1" id="layer-app" data-layer="app">
+                          <span class="painted-title">APP</span>
+                      </div>
+                      
+                      <div class="iso-layer pos-2" id="layer-k8s" data-layer="k8s">
+                          <span class="painted-title">K8S</span>
+                      </div>
+                      
+                      <div class="iso-layer pos-3" id="layer-gcp" data-layer="gcp">
+                          <span class="painted-title">GCP</span>
+                      </div>
+                      
+                  </div>
+              </div>
+
+              <!-- 2D Overlay (Perfectly Flat Popups & Stickers) -->
+              <div class="iso-2d-overlay">
+                  
+                  <div class="iso-popup-group active" id="popup-app">
+                      <div class="popup-sticker">APP</div>
+                      <div class="popup-card"><strong>Zero-Trust Routing</strong>Automated via Terraform.</div>
+                  </div>
+                  
+                  <div class="iso-popup-group" id="popup-k8s">
+                      <div class="popup-sticker">K8S</div>
+                      <div class="popup-card"><strong>700+ GKE Clusters</strong>Self-healing active.</div>
+                  </div>
+                  
+                  <div class="iso-popup-group" id="popup-gcp">
+                      <div class="popup-sticker">GCP</div>
+                      <div class="popup-card"><strong>Resilient Core</strong>RTO halved to 2hrs.</div>
+                  </div>
+
+              </div>
+
+          </div>
+      </div>
+      
+      <!-- Dark Mode: Dynamic Self-Healing Hex Mesh -->
+      <div class="dark-graphic">
+          <div class="hex-mesh" id="hex-mesh">
+              <div class="hex-row">
+                  <div class="hex standard-pod"><span class="pod-label">POD</span><div class="hex-insight"></div></div>
+                  <div class="hex active"><span class="hex-stat">700+</span><span>Clusters</span></div>
+                  <div class="hex standard-pod"><span class="pod-label">POD</span><div class="hex-insight"></div></div>
+              </div>
+              <div class="hex-row">
+                  <div class="hex standard-pod"><span class="pod-label">POD</span><div class="hex-insight"></div></div>
+                  <div class="hex standard-pod"><span class="pod-label">POD</span><div class="hex-insight"></div></div>
+                  <div class="hex standard-pod"><span class="pod-label">POD</span><div class="hex-insight"></div></div>
+                  <div class="hex standard-pod"><span class="pod-label">POD</span><div class="hex-insight"></div></div>
+              </div>
+              <div class="hex-row">
+                  <div class="hex standard-pod"><span class="pod-label">POD</span><div class="hex-insight"></div></div>
+                  <div class="hex active"><span class="hex-stat">99.9%</span><span>Uptime</span></div>
+                  <div class="hex standard-pod"><span class="pod-label">POD</span><div class="hex-insight"></div></div>
+              </div>
+          </div>
+      </div>
+  </div>
+</div>
+
+<div class="badges">
+  <span class="badge"><i>🌍</i> Global Scale Operations</span>
+  <span class="badge"><i>🛡️</i> High Availability Design</span>
+  <span class="badge"><i>⚡</i> Infrastructure as Code</span>
+  <span class="badge"><i>☸️</i> Advanced Orchestration</span>
+  <span class="badge"><i>⏱️</i> 6+ Years Engineering Excellence</span>
+</div>
+
+<div class="terminal" id="term-container">
+  <div class="term-bar">
+    <div class="term-dot"></div><div class="term-dot"></div><div class="term-dot"></div>
+    <span class="term-title">rishab@cloud-native ~ bash</span>
+  </div>
+  <div class="term-content" id="terminal-content">
+    <!-- JS Engine injects dynamic output here -->
+  </div>
+</div>
+
+<div class="section" id="exp">
+  <div class="section-head"><i class="section-icon">💼</i><h2 class="section-title">Professional Impact</h2></div>
+  <div class="exp-list">
+    <div class="exp-card">
+      <div class="exp-top">
+        <div>
+          <div class="exp-title">Senior Cloud Systems Engineer</div>
+          <div class="exp-org">Manhattan Associates</div>
+        </div>
+        <span class="exp-chip">2025 – Present</span>
+      </div>
+      <ul class="exp-bullets">
+        <li>Architected modular Infrastructure as Code (IaC) platforms, dramatically reducing environment provisioning time and accelerating deployment cycles across 700+ distinct infrastructure environments.</li>
+        <li>Engineered robust, highly available systems with automated runbooks and SLO-driven alerting, proactively detecting anomalies and slashing Mean Time To Resolution (MTTR).</li>
+        <li>Spearheaded automation initiatives using Python and shell scripting to eliminate manual infrastructure toil, optimizing operational overhead and reducing deployment friction.</li>
+        <li>Hardened platform security and compliance through rigorous automated IAM reviews, comprehensive backup validation, and consistent disaster recovery testing.</li>
+      </ul>
+    </div>
+    <div class="exp-card">
+      <div class="exp-top">
+        <div>
+          <div class="exp-title">Cloud Systems Engineer</div>
+          <div class="exp-org">Manhattan Associates</div>
+        </div>
+        <span class="exp-chip">2021 – 2025</span>
+      </div>
+      <ul class="exp-bullets">
+        <li>Built and scaled fault-tolerant, cloud-native solutions across major public clouds (GCP, AWS) relying heavily on Terraform for consistent infrastructure provisioning.</li>
+        <li>Optimized resource utilization and application reliability by deploying microservices on Kubernetes (GKE), integrating native service discovery, health checks, and autoscaling.</li>
+        <li>Designed high-throughput, event-driven data pipelines leveraging scalable cloud services (Cloud Functions, Pub/Sub, BigQuery) to process massive datasets with minimal latency.</li>
+        <li>Directed Root Cause Analysis (RCA) for complex distributed systems incidents, engineering self-healing automation to permanently resolve recurring production bottlenecks.</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<div class="section" id="projects">
+  <div class="section-head"><i class="section-icon">🏗️</i><h2 class="section-title">Architectural Highlights</h2></div>
+  <div class="projects-grid">
+    
+    <div class="flip-card">
+      <div class="flip-card-inner">
+        <div class="flip-card-front">
+          <div class="proj-header"><i class="proj-icon">📊</i><div class="proj-name">Enterprise Observability</div></div>
+          <div class="proj-desc">Designed a centralized, high-signal observability stack across hundreds of Kubernetes clusters. Utilized advanced Prometheus rules to eliminate noise and empower rapid triage.</div>
+          <div class="proj-tags"><span class="proj-tag">Prometheus</span><span class="proj-tag">Grafana</span><span class="proj-tag">SLO Design</span></div>
+        </div>
+        <div class="flip-card-back">
+          <h3>// Deep Dive: Observability</h3>
+          <div class="flip-metrics">
+              <div class="f-metric"><span class="f-val">700+</span><span class="f-lbl">GKE Clusters</span></div>
+              <div class="f-metric"><span class="f-val">100%</span><span class="f-lbl">Alert Routing</span></div>
+          </div>
+          <ul class="f-bullets">
+              <li>Integrated complex alert routing via Stackdriver & Prometheus.</li>
+              <li>Orchestrated automated hooks into PagerDuty for incident workflows.</li>
+              <li>Engineered custom recording rules to filter false positives.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="flip-card">
+      <div class="flip-card-inner">
+        <div class="flip-card-front">
+          <div class="proj-header"><i class="proj-icon">🚑</i><div class="proj-name">Disaster Recovery Auto</div></div>
+          <div class="proj-desc">Transformed manual, error-prone recovery processes into highly reliable, audit-ready automated workflows. Successfully halved Recovery Time Objectives (RTO).</div>
+          <div class="proj-tags"><span class="proj-tag">Automation</span><span class="proj-tag">CI/CD</span><span class="proj-tag">Resiliency</span></div>
+        </div>
+        <div class="flip-card-back">
+          <h3>// Deep Dive: Failover Logic</h3>
+          <div class="flip-metrics">
+              <div class="f-metric"><span class="f-val">4h → 2h</span><span class="f-lbl">RTO Reduction</span></div>
+              <div class="f-metric"><span class="f-val">Zero</span><span class="f-lbl">Manual Toil</span></div>
+          </div>
+          <ul class="f-bullets">
+              <li>Automated complex multi-region failover procedures.</li>
+              <li>Engineered custom Bash and Jenkins execution pipelines.</li>
+              <li>Established repeatable, audit-ready compliance workflows.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="flip-card">
+      <div class="flip-card-inner">
+        <div class="flip-card-front">
+          <div class="proj-header"><i class="proj-icon">🔒</i><div class="proj-name">Zero-Trust Networking</div></div>
+          <div class="proj-desc">Engineered secure, low-latency cross-project connectivity ensuring strict network segmentation. Automated firewall lifecycle management via Terraform.</div>
+          <div class="proj-tags"><span class="proj-tag">VPC Peering</span><span class="proj-tag">Terraform</span><span class="proj-tag">Security</span></div>
+        </div>
+        <div class="flip-card-back">
+          <h3>// Deep Dive: Architecture</h3>
+          <div class="flip-metrics">
+              <div class="f-metric"><span class="f-val">Secure</span><span class="f-lbl">Segmentation</span></div>
+              <div class="f-metric"><span class="f-val">Optimized</span><span class="f-lbl">Data Transfer</span></div>
+          </div>
+          <ul class="f-bullets">
+              <li>Engineered Shared VPCs and complex VPC Peering topologies.</li>
+              <li>Implemented custom routing for high-volume inter-region traffic.</li>
+              <li>Automated firewall rule lifecycles ensuring compliance.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="section" id="assets">
+  <div class="section-head" style="justify-content: center;"><i class="section-icon">📄</i><h2 class="section-title">Recruiter Assets</h2></div>
+  <div class="assets-grid">
+      <a href="Rishab_Dhar_Resume.pdf" class="asset-card" target="_blank" rel="noopener noreferrer">
+          <div class="asset-icon">⬇️</div>
+          <div class="asset-info">
+              <h3>Curriculum Vitae</h3>
+              <p>Full technical background & experience history.</p>
+          </div>
+      </a>
+      <a href="Rishab_Dhar_Cover_Letter.pdf" class="asset-card" target="_blank" rel="noopener noreferrer">
+          <div class="asset-icon">⬇️</div>
+          <div class="asset-info">
+              <h3>Cover Letter</h3>
+              <p>Strategic overview & engineering value proposition.</p>
+          </div>
+      </a>
+  </div>
+</div>
+
+<!-- SURPRISE CONTACT BOX -->
+<div class="section" id="contact">
+  <div class="section-head" style="justify-content: center;"><i class="section-icon">📡</i><h2 class="section-title">Contact Info</h2></div>
+  <div class="surprise-container">
+    <div class="surprise-box" id="unlock-trigger">
+      <div class="surprise-icon" id="box-icon">🔒</div>
+      <h3 class="surprise-title" id="box-title">Encrypted Contact Protocol</h3>
+      <p class="surprise-subtitle">>> Click to initiate handshake and decrypt coordinates <<</p>
+      
+      <div class="contact-data">
+        <a class="contact-link" href="mailto:rishab01dhar@gmail.com">
+            <span class="c-label">MAILTO:</span> 
+            <span class="c-val scramble-text" data-target="rishab01dhar@gmail.com">0x00000000000</span>
+        </a>
+        <a class="contact-link" href="https://linkedin.com/in/rishab-dhar-69298911b" target="_blank">
+            <span class="c-label">NETWORK:</span> 
+            <span class="c-val scramble-text" data-target="linkedin.com/in/rishab-dhar">0x00000000000</span>
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <div class="footer-logo"><div class="dot"></div> Rishab Dhar</div>
+  <div>Senior Cloud Engineer & Site Reliability Expert</div>
+  <div style="margin-top: 14px; color: var(--accent); font-weight: 600; letter-spacing: 0.5px;">Targeting Staff/Lead Opportunities on a Global Scale</div>
+</footer>
+</div>
+
+<script>
+// --- ISOLATED BACKGROUND ENGINES ---
+const canvas = document.getElementById('dynamic-bg');
+const ctx = canvas.getContext('2d');
+let width = canvas.width = window.innerWidth;
+let height = canvas.height = window.innerHeight;
+
+// 1. Dark Mode State (Matrix Rain)
+const matrixChars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789$+-*/=%""\'#&_(),.;:?!\\|{}<>[]^~日ﾊﾐﾋｰｳｼﾅﾓﾆｻﾜﾂｵﾘｱﾎﾃﾏｹﾒｴｶｷﾑﾕﾗｾﾈｽﾀﾇﾍ'.split('');
+const fontSize = 16;
+let columns = Math.floor(width / fontSize);
+let drops = [];
+for (let x = 0; x < columns; x++) drops[x] = 1;
+
+function drawMatrix() {
+    ctx.fillStyle = 'rgba(2, 4, 2, 0.15)'; 
+    ctx.fillRect(0, 0, width, height);
+    ctx.fillStyle = '#00FF41'; 
+    ctx.font = fontSize + 'px "JetBrains Mono", monospace';
+    
+    for (let i = 0; i < drops.length; i++) {
+        const text = matrixChars[Math.floor(Math.random() * matrixChars.length)];
+        ctx.fillText(text, i * fontSize, drops[i] * fontSize);
+        if (drops[i] * fontSize > height && Math.random() > 0.975) {
+            drops[i] = 0;
+        }
+        drops[i]++;
+    }
+}
+
+// 2. Light Mode State (Ambient Typing Code)
+const codeSnippets = [
+  "SELECT *\nFROM World\nWHERE \"Someone\"\nLIKE '%You%'\n\n...\n/> no results !",
+  "try {\n  fix_production_bug();\n} catch (Panic e) {\n  git_commit(\"-m 'WIP'\");\n  git_push(\"--force\");\n  exit(1);\n}",
+  "// TODO: Refactor this later\n// Update 2021: Still haven't refactored\n// Update 2026: It's load-bearing now. Do not touch.",
+  "sudo rm -rf /\n# Just kidding...\n# ...unless?",
+  "function getSleep() {\n  while(bugs > 0) {\n    coffee++;\n    bugs++; // How?!\n  }\n}",
+  "SELECT sanity\nFROM developer\nWHERE coffee_level = 0;\n\nERROR 404: Not Found",
+  "git status\n> On branch master\n> Your branch is ahead of 'origin/master'\n> by 42 commits.\n\n...nah, it's fine locally.",
+  "if (brain.status == 'empty') {\n  brain.load('StackOverflow');\n  brain.copy();\n  brain.paste();\n}",
+  "terraform apply -auto-approve\n\n# The exact moment my heart rate\n# spiked to 180 BPM.",
+  "while (true) {\n  deploy_to_friday();\n  ruin_weekend();\n}",
+  "docker run -d --name my_life alpine tail -f /dev/null\n# Running aimlessly in the background.",
+  "const isWorking = true;\nif (!isWorking) {\n  // It worked on my machine\n  blame('DevOps');\n}",
+  "SELECT * FROM users WHERE password = 'password123';\n\n// Returns 4,281 rows.\n// *Sigh*",
+  "kubectl delete pod --all\n\n# Chaos Engineering or\n# just a Monday morning?",
+  "AWS_BILL = 'OVER_9000'\nif AWS_BILL:\n  panic()\n  close_account()",
+  "catch (Exception e) {\n  // Do nothing.\n  // God will handle it.\n}",
+  "git commit -m 'fixed stuff'\ngit commit -m 'really fixed it this time'\ngit commit -m 'asdfghjkl'",
+  "chmod 777 -R /\n\n# The \"I just want it to work\"\n# last resort.",
+  "sed -i 's/YAML/Pain/g' config.yml\n# At least JSON has brackets.",
+  "let sleep = null;\nwhile(project.deadline < Date.now()) {\n  sleep = false;\n}",
+  "console.log('Here 1');\nconsole.log('Here 2');\n// Ah, print debugging. A classic.",
+  "SELECT * FROM database WHERE table = 'dropped';\n\n// Little Bobby Tables strikes again.",
+  "while (server.isDown()) {\n  restart();\n  pray();\n}",
+  "if (code.compiles()) {\n  suspect(code);\n  // It never works on the first try.\n}",
+  "alias git-push-force='echo \"Are you sure?\"'",
+  "try {\n  read_docs();\n} catch (TLDR) {\n  copy_paste_from_tutorial();\n}",
+  "npm install\n\n# 4000 vulnerabilities found.\n# *closes terminal*",
+  "kill -9 1\n# Wait, what does PID 1 do a-",
+  "ssh root@production\n# It's a bold strategy, Cotton.",
+  "cat /dev/urandom > brain.log",
+  "if (req.method == 'OPTIONS') {\n  return 200; // Just let them in\n}",
+  "// I wrote this code and only God and I\n// knew how it worked.\n// Now, only God knows.",
+  "SELECT user FROM db WHERE iq > 200;\n\n// 0 rows returned.",
+  "throw new Error('Task failed successfully');",
+  "systemctl restart network\n\n# Connection closed by remote host.",
+  "echo '127.0.0.1 localhost' > /etc/hosts\n# There's no place like 127.0.0.1",
+  "const anxiety = require('production-deploy');",
+  "git branch -d master\n# Oops.",
+  "if (config.yaml.indentation == 3) {\n  destroy_universe();\n}",
+  "SELECT * FROM dependencies\nWHERE status = 'deprecated';\n\n// Result: Your entire project.",
+  "ping 8.8.8.8\n# Pinging Google, the modern heartbeat.",
+  "while(coffee.isEmpty()) {\n  coder.brain.stop();\n}",
+  "rm -rf .git\n# A fresh start. A new identity.",
+  "try {\n  understand_regex();\n} catch (BrainMelt) {\n  use_string_split();\n}",
+  "alert('Debugging via alert... we meet again.');",
+  "SELECT * FROM tickets WHERE status='WONT_FIX';\n// Oh, you mean the backlog?",
+  "git reset --hard HEAD~1\n# I didn't want those 3 hours\n# of work anyway.",
+  "function test() {\n  return true; // 100% coverage achieved\n}",
+  "if (memory_leak) {\n  auto_restart_pod();\n  // Peak SRE engineering.\n}",
+  "console.log( [ ] == ! [ ] ); // true\n// JavaScript, you okay?"
+];
+
+let activeSnippet = "";
+let currentCharIndex = 0;
+let currentSnippetIndex = 0;
+let isHoldingCode = false;
+let codeX = width * 0.15;
+let codeY = height * 0.25;
+
+function startNewSnippet() {
+    activeSnippet = codeSnippets[currentSnippetIndex];
+    currentCharIndex = 0;
+    isHoldingCode = false;
+    codeX = width * 0.1 + Math.random() * (width * 0.4);
+    codeY = height * 0.2 + Math.random() * (height * 0.4);
+    currentSnippetIndex = (currentSnippetIndex + 1) % codeSnippets.length;
+}
+startNewSnippet();
+
+function drawLightCode() {
+    ctx.clearRect(0, 0, width, height);
+    ctx.fillStyle = 'rgba(37, 99, 235, 0.08)'; 
+    ctx.font = 'bold 26px "JetBrains Mono", monospace';
+    ctx.textBaseline = 'top';
+
+    if (!isHoldingCode) {
+        currentCharIndex += 0.5; 
+        if (currentCharIndex >= activeSnippet.length) {
+            currentCharIndex = activeSnippet.length;
+            isHoldingCode = true;
+            setTimeout(() => { startNewSnippet(); }, 5000); 
+        }
+    }
+
+    const textToDraw = activeSnippet.substring(0, Math.floor(currentCharIndex));
+    const lines = textToDraw.split('\n');
+    
+    lines.forEach((line, index) => {
+        ctx.fillText(line, codeX, codeY + (index * 34)); 
+    });
+    
+    if (!isHoldingCode || Math.floor(Date.now() / 500) % 2 === 0) {
+        const lastLine = lines[lines.length - 1];
+        const textWidth = ctx.measureText(lastLine).width;
+        ctx.fillRect(codeX + textWidth + 4, codeY + ((lines.length - 1) * 34), 14, 26);
+    }
+}
+
+let lastFrameTime = 0;
+function renderFrame(time) {
+    requestAnimationFrame(renderFrame);
+    const theme = document.documentElement.getAttribute('data-theme') || 'dark';
+    
+    if (theme === 'dark') {
+        if (time - lastFrameTime >= 50) {
+            lastFrameTime = time;
+            drawMatrix();
+        }
+    } else {
+        drawLightCode();
+    }
+}
+requestAnimationFrame(renderFrame);
+
+window.addEventListener('resize', () => {
+    width = canvas.width = window.innerWidth;
+    height = canvas.height = window.innerHeight;
+    columns = Math.floor(width / fontSize);
+    drops = [];
+    for (let x = 0; x < columns; x++) drops[x] = 1;
+});
+
+
+// --- LIGHT MODE: AUTONOMOUS ROTATING TRAIN ---
+const popups = document.querySelectorAll('.iso-popup-group');
+let currentOrder = ['app', 'k8s', 'gcp'];
+
+function cycleIsoStack() {
+    const last = currentOrder.pop();
+    currentOrder.unshift(last);
+
+    currentOrder.forEach((id, index) => {
+        const el = document.getElementById('layer-' + id);
+        el.className = `iso-layer pos-${index + 1}`;
+    });
+
+    popups.forEach(p => p.classList.remove('active'));
+    const topId = currentOrder[0];
+    document.getElementById('popup-' + topId).classList.add('active');
+}
+
+// Initial state
+document.getElementById('popup-app').classList.add('active');
+
+// Autonomous carousel
+setInterval(cycleIsoStack, 4000); 
+
+
+// --- DARK MODE: DYNAMIC HEX MESH ---
+const hexes = document.querySelectorAll('.hex.standard-pod');
+const hexInsights = [
+    "SLO Alert: Triggering automated runbook...",
+    "Traffic rerouted via Terraform policies.",
+    "Self-healing script deployed. Pod restored.",
+    "RTO optimized. Recovery < 2 hours.",
+    "Anomaly detected. Prometheus alert resolved.",
+    "Toil eliminated. Auto-provisioning replica."
+];
+
+function runHexChaos() {
+    if (document.documentElement.getAttribute('data-theme') === 'light') return;
+    
+    const target = hexes[Math.floor(Math.random() * hexes.length)];
+    if(target.classList.contains('crashing') || target.classList.contains('healing')) return;
+    
+    target.classList.add('crashing');
+    target.querySelector('.pod-label').innerText = 'FAIL';
+    
+    setTimeout(() => {
+        target.classList.remove('crashing');
+        target.classList.add('healing');
+        target.querySelector('.pod-label').innerText = 'HEAL';
+        target.querySelector('.hex-insight').innerText = hexInsights[Math.floor(Math.random() * hexInsights.length)];
+        
+        setTimeout(() => {
+            target.classList.remove('healing');
+            target.querySelector('.pod-label').innerText = 'POD';
+        }, 3500);
+    }, 2000);
+}
+setInterval(runHexChaos, 2500);
+
+
+// --- FLASHCARD CUE WIDGET LOGIC ---
+const cueBtn = document.getElementById('cue-btn');
+const cueModal = document.getElementById('cue-modal');
+const cueCard = document.getElementById('cue-card');
+const cueText = document.getElementById('cue-text');
+const closeCues = document.querySelectorAll('.close-cue');
+
+function formatFlashcardSyntax(text) {
+    return text.replace(/\b(SELECT|FROM|WHERE|LIKE|try|catch|function|while)\b/g, '<span class="kw">$1</span>')
+               .replace(/('.*?'|".*?")/g, '<span class="str">$1</span>');
+}
+
+cueBtn.addEventListener('click', () => {
+    cueModal.classList.add('active');
+    triggerCueCard();
+});
+
+cueModal.addEventListener('click', (e) => {
+    if(e.target === cueModal) {
+        cueModal.classList.remove('active');
+        cueCard.classList.remove('flipped');
+    }
+});
+
+closeCues.forEach(btn => {
+    btn.addEventListener('click', () => {
+        cueModal.classList.remove('active');
+        cueCard.classList.remove('flipped');
+    });
+});
+
+cueCard.addEventListener('click', (e) => {
+    if(e.target.classList.contains('close-cue')) return; 
+    
+    if(cueCard.classList.contains('flipped')) {
+        cueCard.classList.remove('flipped');
+        setTimeout(triggerCueCard, 400); 
+    } else {
+        triggerCueCard();
+    }
+});
+
+function triggerCueCard() {
+    const randomSnippet = codeSnippets[Math.floor(Math.random() * codeSnippets.length)];
+    cueText.innerHTML = formatFlashcardSyntax(randomSnippet);
+    cueCard.classList.add('flipped');
+}
+
+
+// --- TERMINAL DATA & AUTO-RELOAD CYCLE ENGINE ---
+const darkLines = [
+    { text: "kubectl get deployment career -o jsonpath='{.status.scaling}'", isCommand: true },
+    { text: "[", isCode: true },
+    { text: "  {", isCode: true },
+    { text: "    \"role\": \"Cloud Systems Engineer\",", isCode: true },
+    { text: "    \"tenure\": \"2021-2025\",", isCode: true },
+    { text: "    \"impact\": \"Led RCA for distributed systems; implemented self-healing automation.\",", isCode: true },
+    { text: "    \"status\": \"Successful Progression\"", isCode: true },
+    { text: "  },", isCode: true },
+    { text: "  {", isCode: true },
+    { text: "    \"role\": \"Senior Cloud Systems Engineer\",", isCode: true },
+    { text: "    \"tenure\": \"2025-Present\",", isCode: true },
+    { text: "    \"scale_target\": \"700+ Distinct Ephemeral Environments\",", isCode: true },
+    { text: "    \"metrics\": {\"provisioning_time\": \"-70%\", \"dr_rto\": \"4h -> 2h\"},", isCode: true },
+    { text: "    \"initiatives\": \"Modular IaC, SLO-driven alerting, Toil reduction\",", isCode: true },
+    { text: "    \"status\": \"Global Readiness Achieved\"", isCode: true },
+    { text: "  }", isCode: true },
+    { text: "]", isCode: true },
+    { text: "", isCommand: true, isPromptOnly: true }
+];
+
+const lightLines = [
+    { text: "kubectl describe configmap rishab-tech-stack-v2 -o yaml", isCommand: true },
+    { text: "apiVersion: v1", isCode: true },
+    { text: "kind: ConfigMap", isCode: true },
+    { text: "metadata:", isCode: true },
+    { text: "  name: rishab-tech-stack-v2", isCode: true },
+    { text: "  namespace: global-operations", isCode: true },
+    { text: "data:", isCode: true },
+    { text: "  cloud_infrastructure: \"Kubernetes (GKE, EKS), GCP, AWS, Docker\"", isCode: true },
+    { text: "  iac_automation: \"Terraform, Python (Boto3), Bash, Jenkins, GitHub Actions\"", isCode: true },
+    { text: "  observability: \"Prometheus, Grafana, ELK Stack, Alertmanager\"", isCode: true },
+    { text: "  data_streaming: \"BigQuery, Pub/Sub, Cloud SQL, PostgreSQL\"", isCode: true },
+    { text: "  networking_security: \"VPC Peering, Zero-Trust, IAM, Vault\"", isCode: true },
+    { text: "", isCommand: true, isPromptOnly: true }
+];
+
+let typeInterval;
+let isTyping = false;
+let hasPlayedThisCycle = false;
+const termContent = document.getElementById('terminal-content');
+
+function highlightTerminalSyntax(text, isDark) {
+    if (isDark) {
+        return text.replace(/"([^"]+)":/g, '<span class="term-key">"$1":</span>')
+                   .replace(/: "([^"]+)"/g, ': <span class="term-val">"$1"</span>')
+                   .replace(/: (\{.*?\})/g, ': <span class="term-val">$1</span>');
+    } else {
+        return text.replace(/^(\s*[a-zA-Z0-9_]+):/g, '<span class="term-key">$1:</span>')
+                   .replace(/: "([^"]+)"/g, ': <span class="term-val">"$1"</span>');
+    }
+}
+
+function typeNext(lines, lineIndex, isDark) {
+    if (lineIndex >= lines.length) { isTyping = false; return; }
+    const line = lines[lineIndex];
+    let currentLineDiv = document.createElement('div');
+    termContent.appendChild(currentLineDiv);
+
+    if (line.isCommand && !line.isPromptOnly) {
+        currentLineDiv.innerHTML = `<span class="term-prompt">$</span> <span class="cmd-text"></span><span class="term-cursor"></span>`;
+        const cmdText = currentLineDiv.querySelector('.cmd-text');
+        
+        let charIndex = 0;
+        let typeIntervalFast = setInterval(() => {
+            cmdText.innerHTML += line.text.charAt(charIndex);
+            charIndex++;
+            if (charIndex >= line.text.length) {
+                clearInterval(typeIntervalFast);
+                typeInterval = setTimeout(() => typeNext(lines, lineIndex + 1, isDark), 300);
+            }
+        }, 30);
+    } else if (line.isPromptOnly) {
+        currentLineDiv.innerHTML = `<br><span class="term-prompt">$</span> <span class="term-cursor"></span>`;
+        typeNext(lines, lineIndex + 1, isDark);
+    } else {
+        currentLineDiv.innerHTML = highlightTerminalSyntax(line.text, isDark);
+        typeInterval = setTimeout(() => typeNext(lines, lineIndex + 1, isDark), 50);
+    }
+}
+
+function runTerminalAnimation() {
+    if(isTyping) return;
+    isTyping = true;
+    clearTimeout(typeInterval);
+    termContent.innerHTML = '';
+    const theme = document.documentElement.getAttribute('data-theme') || 'dark';
+    const isDark = theme === 'dark';
+    const lines = isDark ? darkLines : lightLines;
+    typeNext(lines, 0, isDark);
+}
+
+// SCROLL LOGIC
+window.addEventListener('scroll', () => {
+    const scrollPx = document.documentElement.scrollTop;
+    const winHeightPx = document.documentElement.scrollHeight - document.documentElement.clientHeight;
+    const scrolled = scrollPx / winHeightPx; 
+    document.getElementById("scroll-progress").style.width = `${scrolled * 100}%`;
+
+    if (scrollPx < 50) {
+        hasPlayedThisCycle = false;
+    }
+});
+
+// Terminal Intersection Observer
+const termObserver = new IntersectionObserver(entries => {
+    entries.forEach(entry => {
+        if (entry.isIntersecting && !hasPlayedThisCycle) {
+            runTerminalAnimation();
+            hasPlayedThisCycle = true;
+        }
+    });
+}, { threshold: 0.2 });
+termObserver.observe(document.getElementById('term-container'));
+
+// --- Theme Toggle Logic ---
+const themeToggle = document.getElementById('theme-toggle');
+themeToggle.addEventListener('click', () => {
+    const currentTheme = document.documentElement.getAttribute('data-theme') || 'dark';
+    const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', newTheme);
+    
+    if (newTheme === 'dark') {
+        ctx.clearRect(0, 0, width, height);
+    }
+    
+    isTyping = false; 
+    runTerminalAnimation();
+});
+
+// --- UI Interaction ---
+const bulletObserver = new IntersectionObserver(entries => {
+    entries.forEach(e => {
+        if (e.isIntersecting) {
+            const bullets = e.target.querySelectorAll('li');
+            bullets.forEach((b, i) => {
+                setTimeout(() => { b.parentElement.classList.add('visible'); }, i * 200); 
+            });
+        } else {
+            e.target.classList.remove('visible'); 
+        }
+    });
+}, { threshold: 0.1 });
+document.querySelectorAll('.exp-bullets').forEach(el => bulletObserver.observe(el));
+
+// Cursor
+const cursorDot = document.querySelector('.cursor-dot');
+const cursorOutline = document.querySelector('.cursor-outline');
+document.addEventListener('mouseleave', () => { cursorDot.style.opacity = '0'; cursorOutline.style.opacity = '0'; });
+document.addEventListener('mouseenter', () => { cursorDot.style.opacity = '1'; cursorOutline.style.opacity = '1'; });
+window.addEventListener('mousemove', (e) => {
+    cursorDot.style.left = `${e.clientX}px`; cursorDot.style.top = `${e.clientY}px`;
+    cursorOutline.animate({ left: `${e.clientX}px`, top: `${e.clientY}px` }, { duration: 150, fill: "forwards" });
+});
+
+const interactiveElements = document.querySelectorAll('a, .btn, button, .flip-card, .cue-widget-btn, .close-cue, .asset-card, .hex');
+interactiveElements.forEach(el => {
+    el.addEventListener('mouseenter', () => {
+        cursorOutline.style.width = '45px'; cursorOutline.style.height = '45px';
+        cursorOutline.style.backgroundColor = 'var(--accent-faint)';
+        cursorDot.style.transform = 'translate(-50%, -50%) scale(1.5)';
+    });
+    el.addEventListener('mouseleave', () => {
+        cursorOutline.style.width = '32px'; cursorOutline.style.height = '32px';
+        cursorOutline.style.backgroundColor = 'transparent';
+        cursorDot.style.transform = 'translate(-50%, -50%) scale(1)';
+    });
+});
+
+// Animations
+const cards = document.querySelectorAll('.exp-card, .flip-card, .surprise-container, .hero-tag, .hero-name, .hero-desc, .hero-btns, .badges, .asset-card');
+const obs = new IntersectionObserver(entries => {
+  entries.forEach(e => {
+    if(e.isIntersecting) {
+      e.target.style.opacity = '1'; e.target.style.transform = 'translateY(0)';
+    }
+  });
+}, { threshold: 0.1, rootMargin: '0px 0px -50px 0px' });
+cards.forEach((c, index) => {
+  c.style.opacity = '0'; c.style.transform = 'translateY(40px)';
+  c.style.transition = `opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1) ${index * 0.05}s, transform 0.8s cubic-bezier(0.16, 1, 0.3, 1) ${index * 0.05}s`;
+  obs.observe(c);
+});
+
+// Decrypt Scramble
+const unlockTrigger = document.getElementById('unlock-trigger');
+const scrambleElements = document.querySelectorAll('.scramble-text');
+let isUnlocked = false;
+const decryptChars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+
+function scrambleText(element, finalString) {
+    let iterations = 0; const maxIterations = 20;
+    const interval = setInterval(() => {
+        element.innerText = finalString.split('').map((char, index) => {
+            if(index < iterations / 2) return finalString[index];
+            return decryptChars[Math.floor(Math.random() * decryptChars.length)];
+        }).join('');
+        if(iterations >= maxIterations * 2) {
+            clearInterval(interval); element.innerText = finalString;
+        }
+        iterations += 1;
+    }, 30);
+}
+
+unlockTrigger.addEventListener('click', function() {
+    if(isUnlocked) return;
+    isUnlocked = true;
+    this.classList.add('unlocked');
+    document.getElementById('box-icon').innerText = '🔓';
+    document.getElementById('box-title').innerText = 'Access Granted';
+    setTimeout(() => {
+        scrambleElements.forEach(el => {
+            scrambleText(el, el.getAttribute('data-target'));
+        });
+    }, 400);
+});
+</script>
+</body>
+</html>
