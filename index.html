@@ -75,12 +75,16 @@
 html, body { 
     width: 100%; max-width: 100vw; overflow-x: hidden; 
 }
-html { scroll-behavior: smooth; cursor: none; } 
+html { 
+    scroll-behavior: smooth; cursor: none; 
+    background-color: var(--bg); transition: background-color 0.5s ease;
+} 
 body { 
-    background-color: var(--bg); color: var(--ink); 
+    background-color: transparent; /* FIXED: Transparent body reveals the canvas */
+    color: var(--ink); 
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; 
     -webkit-font-smoothing: antialiased; 
-    transition: background-color 0.5s ease, color 0.5s ease;
+    transition: color 0.5s ease;
     position: relative;
 }
 
@@ -93,11 +97,11 @@ body {
 }
 
 html[data-theme="dark"] #dynamic-bg { opacity: 0.25; } 
-html[data-theme="light"] #dynamic-bg { opacity: 1; } 
+html[data-theme="light"] #dynamic-bg { opacity: 0.35; } 
 
 body::before {
     content: ''; position: fixed; inset: 0; z-index: -1;
-    background: transparent; pointer-events: none; transition: background 0.8s ease-out;
+    background: transparent; pointer-events: none; transition: background 0.5s ease-out;
 }
 html[data-theme="light"] body::before {
     background: 
@@ -128,23 +132,24 @@ html[data-theme="light"] body::before {
     width: 0%; z-index: 999999; transition: width 0.1s; 
 }
 
-.wrap { width: 100%; max-width: 1100px; margin: 0 auto; padding: 0 24px 100px; position: relative; z-index: 10; box-sizing: border-box; }
+/* FIXED: Replaced absolute max-width with 100% dynamic width scaling */
+.wrap { width: 100%; max-width: 100%; margin: 0; padding: 0 5vw 100px; position: relative; z-index: 10; box-sizing: border-box; }
 
 /* =========================================
    NAVIGATION & THEME TOGGLE
    ========================================= */
 nav {
-    display: flex; justify-content: space-between; align-items: center;
+    display: flex; align-items: center;
     padding: 16px 0; border-bottom: 1px solid var(--border);
     position: sticky; top: 0; background: var(--surface); 
     backdrop-filter: saturate(200%) blur(30px); -webkit-backdrop-filter: saturate(200%) blur(30px);
-    z-index: 100; transition: background 0.5s, border-color 0.5s;
+    z-index: 100; transition: background 0.5s ease, border-color 0.5s ease;
 }
-.nav-logo { font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 18px; display: flex; align-items: center; gap: 10px; color: var(--ink); white-space: nowrap; }
+.nav-logo { font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 18px; display: flex; align-items: center; gap: 10px; color: var(--ink); white-space: nowrap; margin-right: auto; }
 .nav-logo .dot { width: 8px; height: 8px; background: var(--accent); border-radius: 50%; box-shadow: 0 0 12px var(--accent); animation: pulse 2s infinite; }
 @keyframes pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.5; transform: scale(0.8); } }
 
-.nav-links { display: flex; gap: 12px; align-items: center; }
+.nav-links { display: flex; gap: 12px; align-items: center; margin-right: 16px; }
 .nav-links a { color: var(--ink2); text-decoration: none; font-size: 14px; font-weight: 500; padding: 8px 16px; border-radius: 99px; transition: all var(--transition); cursor: none;}
 .nav-links a:hover { color: var(--accent); background: var(--accent-faint); transform: translateY(-1px); }
 
@@ -164,11 +169,11 @@ html[data-theme="light"] .theme-toggle .moon { display: block; }
    ========================================= */
 .hero { padding: 120px 0 80px; display: grid; grid-template-columns: 1.2fr 1fr; gap: 60px; align-items: center; }
 .hero-left { display: flex; flex-direction: column; align-items: flex-start; }
-.hero-tag { display: inline-flex; align-items: center; gap: 10px; background: var(--surface); border: 1px solid var(--border-strong); border-radius: 99px; padding: 8px 20px; font-size: 13px; font-weight: 600; color: var(--ink); margin-bottom: 32px; backdrop-filter: blur(20px); box-shadow: var(--shadow-sm);}
-.hero-tag i { color: var(--accent); font-style: normal; }
+.hero-tag { display: inline-flex; align-items: center; gap: 10px; background: var(--surface); border: 1px solid var(--border-strong); border-radius: 99px; padding: 10px 20px; font-size: 13px; font-weight: 600; color: var(--ink); margin-bottom: 32px; backdrop-filter: blur(20px); box-shadow: var(--shadow-sm); white-space: normal; line-height: 1.5;}
+.hero-tag i { color: var(--accent); font-style: normal; flex-shrink: 0;}
 .hero-name { font-family: 'Space Grotesk', sans-serif; font-size: clamp(42px, 6.5vw, 84px); font-weight: 700; line-height: 1.05; letter-spacing: -2px; color: var(--ink); margin-bottom: 20px; }
 .hero-role { font-size: 22px; font-weight: 500; color: var(--accent); margin-bottom: 28px; letter-spacing: -0.3px; display: flex; align-items: center; gap: 8px; font-family: 'Space Grotesk', sans-serif; }
-.hero-desc { font-size: 16px; line-height: 1.8; color: var(--ink2); max-width: 560px; margin-bottom: 48px; text-align: left;}
+.hero-desc { font-size: 16px; line-height: 1.8; color: var(--ink2); max-width: 700px; margin-bottom: 48px; text-align: left;}
 .hero-desc strong { color: var(--ink); font-weight: 600; }
 
 .hero-btns { display: flex; gap: 16px; flex-wrap: wrap; }
@@ -191,11 +196,10 @@ html[data-theme="light"] .light-graphic { display: flex; }
 html[data-theme="light"] .dark-graphic { display: none; }
 
 /* =========================================
-   LIGHT MODE: AUTONOMOUS FLUID CAROUSEL
+   LIGHT MODE: AUTONOMOUS FLUID CAROUSEL (100% UNTOUCHED)
    ========================================= */
 .iso-wrapper { position: relative; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; pointer-events: none; }
 
-/* The 3D Scene */
 .iso-scene { 
     perspective: 1200px; width: 340px; height: 340px; 
     display: flex; align-items: center; justify-content: center; position: absolute;
@@ -205,7 +209,6 @@ html[data-theme="light"] .dark-graphic { display: none; }
     position: relative; width: 240px; height: 240px; 
 }
 
-/* The Glass Leaves */
 .iso-layer { 
     position: absolute; width: 240px; height: 240px; 
     border: 2px solid var(--accent); border-radius: 16px; backdrop-filter: blur(8px); 
@@ -217,7 +220,6 @@ html[data-theme="light"] .dark-graphic { display: none; }
 .iso-layer::before { width: 100%; height: 16px; bottom: -18px; left: -2px; transform-origin: top; transform: rotateX(-90deg); }
 .iso-layer::after { width: 16px; height: 100%; right: -18px; top: -2px; transform-origin: left; transform: rotateY(90deg); }
 
-/* Autonomous Depth Positions */
 .iso-layer.pos-1 { 
     transform: translateZ(160px); z-index: 3; opacity: 1; 
     background: rgba(37, 99, 235, 0.15); 
@@ -234,7 +236,6 @@ html[data-theme="light"] .dark-graphic { display: none; }
     box-shadow: inset 0 0 10px rgba(37, 99, 235, 0.05); 
 }
 
-/* Faint Painted Text on the Glass Layers */
 .painted-title {
     position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
     font-family: 'JetBrains Mono', monospace; font-size: 26px; font-weight: bold; color: var(--accent);
@@ -242,7 +243,6 @@ html[data-theme="light"] .dark-graphic { display: none; }
 }
 .iso-layer.pos-1 .painted-title { opacity: 0; }
 
-/* THE 2D POP-UP OVERLAY (100% Free from 3D Distortion) */
 .iso-2d-overlay {
     position: absolute; inset: 0; z-index: 1000;
     perspective: 1200px; display: flex; align-items: center; justify-content: center;
@@ -252,9 +252,9 @@ html[data-theme="light"] .dark-graphic { display: none; }
     position: absolute; top: 50%; left: 50%;
     margin-top: -80px; margin-left: -60px; 
     display: flex; align-items: center; justify-content: flex-start;
+    pointer-events: none;
 }
 
-/* The Sticker Title (Peels Off) */
 .popup-sticker {
     background: var(--accent); color: white; padding: 6px 16px; border-radius: 8px;
     font-family: 'JetBrains Mono', monospace; font-size: 16px; font-weight: bold;
@@ -264,16 +264,15 @@ html[data-theme="light"] .dark-graphic { display: none; }
 }
 
 .iso-popup-group.active .popup-sticker {
-    transform: rotateX(0deg) rotateZ(0deg) translate3d(0, 0, 0); opacity: 1;
+    transform: rotateX(0deg) rotateZ(0deg) translate3d(0, 0, 0); opacity: 1; pointer-events: auto;
 }
 
-/* The Info Card (Slides in next to sticker) */
 .popup-card {
     background: #FFFFFF; padding: 18px 24px; border: 2px solid var(--accent); 
     color: #0F172A; border-radius: 12px; width: 240px; font-size: 13px; font-family: 'Inter', sans-serif; font-weight: 500;
     text-align: left; box-shadow: 0 25px 50px rgba(0,0,0,0.15); margin-left: 20px;
     transform: translateX(-20px); opacity: 0; visibility: hidden;
-    transition: all 0.6s cubic-bezier(0.25, 1, 0.5, 1) 0.2s; 
+    transition: all 0.6s cubic-bezier(0.25, 1, 0.5, 1) 0.2s; pointer-events: auto;
 }
 .iso-popup-group.active .popup-card {
     transform: translateX(0); opacity: 1; visibility: visible;
@@ -309,6 +308,7 @@ html[data-theme="light"] .dark-graphic { display: none; }
 }
 .hex.healing .hex-insight { opacity: 1; transform: translateX(-50%) translateY(0); }
 
+/* Badges */
 .badges { display: flex; flex-wrap: wrap; gap: 12px; margin: 0 0 80px; justify-content: center; }
 .badge { display: inline-flex; align-items: center; gap: 10px; padding: 12px 24px; border-radius: 99px; font-size: 14px; font-weight: 600; background: var(--surface); border: 1px solid var(--border-strong); color: var(--ink); backdrop-filter: blur(20px); transition: all var(--spring); box-shadow: var(--shadow-sm);}
 .badge:hover { transform: translateY(-4px); border-color: var(--accent); color: var(--accent); background: var(--accent-faint); box-shadow: 0 10px 25px var(--accent-glow); }
@@ -321,7 +321,7 @@ html[data-theme="light"] .dark-graphic { display: none; }
     background: var(--term-bg); border-radius: var(--radius-lg); 
     padding: 32px; margin-bottom: 120px; box-shadow: var(--shadow-sm); 
     border: 1px solid var(--border-strong); position: relative; 
-    overflow: hidden; transition: background 0.5s, border-color 0.5s; 
+    overflow: hidden; transition: background 0.5s ease, border-color 0.5s ease; 
     font-family: 'JetBrains Mono', monospace; font-size: 14px; 
     line-height: 1.8; color: var(--term-str); min-height: 480px;
     backdrop-filter: blur(30px); word-break: break-word; overflow-wrap: anywhere;
@@ -363,9 +363,8 @@ html[data-theme="light"] .dark-graphic { display: none; }
 
 /* Projects */
 .projects-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 32px; }
-.flip-card { background: transparent; height: 380px; perspective: 1500px; cursor: none; }
+.flip-card { background: transparent; height: 450px; perspective: 1500px; cursor: none; }
 .flip-card-inner { position: relative; width: 100%; height: 100%; text-align: left; transition: transform 0.8s var(--spring); transform-style: preserve-3d; }
-/* Added .active for native mobile tap toggling */
 .flip-card:hover .flip-card-inner, .flip-card.active .flip-card-inner { transform: rotateY(180deg); }
 
 .flip-card-front, .flip-card-back {
@@ -443,7 +442,7 @@ html[data-theme="light"] .dark-graphic { display: none; }
     display: flex; align-items: center; justify-content: space-between; width: 100%; max-width: 400px;
     padding: 16px 24px; background: rgba(0,0,0,0.4); border: 1px solid var(--border-strong);
     border-radius: 12px; text-decoration: none; color: var(--ink); font-family: 'JetBrains Mono', monospace;
-    font-size: 14px; transition: all 0.3s; z-index: 2; position: relative;
+    font-size: 14px; transition: all 0.3s; z-index: 2; position: relative; word-break: break-all; text-align: left;
 }
 html[data-theme="light"] .contact-link { background: rgba(255,255,255,0.7); }
 .contact-link:hover { border-color: var(--accent); background: var(--accent-faint); transform: scale(1.02); }
@@ -512,27 +511,35 @@ footer { text-align: center; padding: 64px 0 40px; font-size: 14.5px; color: var
 @media (max-width: 850px) {
     .hero { grid-template-columns: 1fr; text-align: center; gap: 40px; padding: 60px 0; }
     .hero-left { align-items: center; }
-    .hero-desc { text-align: center; }
+    .hero-desc { text-align: center; margin: 0 auto 48px;}
     .hero-btns { justify-content: center; }
     
-    /* Dynamic scaling to preserve 3D math on smaller screens */
     .light-graphic { transform: scale(0.7); height: 350px; }
     .dark-graphic { transform: scale(0.85); height: 350px; }
 }
 
 @media (max-width: 600px) {
-    nav { flex-direction: column; gap: 20px; }
-    .theme-toggle { position: absolute; top: 20px; right: 20px; }
+    .wrap { padding: 0 16px 80px; }
     
-    .light-graphic { transform: scale(0.5); height: 260px; }
-    .dark-graphic { transform: scale(0.65); height: 260px; }
+    nav { flex-wrap: wrap; padding: 16px 0; }
+    .nav-logo { flex: 1; display: flex; align-items: center; margin-right: 0; order: 1;}
+    .theme-toggle { margin-left: auto; display: flex; order: 2; margin-top: 0;}
+    .nav-links { width: 100%; justify-content: center; display: flex; gap: 8px; flex-wrap: wrap; order: 3; margin-top: 16px;}
+    .nav-links a { padding: 8px 12px; font-size: 13px; }
     
-    .flip-card { min-height: 420px; height: auto; }
-    .flip-card-front, .flip-card-back { padding: 24px; }
+    .light-graphic { transform: scale(0.5); height: 260px; margin-top: 20px;}
+    .dark-graphic { transform: scale(0.65); height: 260px; margin-top: 20px;}
+    
+    .flip-card { height: auto; min-height: 480px;}
+    .flip-card-front, .flip-card-back { padding: 24px; position: relative; backface-visibility: visible; transform: none; display: none; }
+    .flip-card-front { display: flex; }
+    .flip-card.active .flip-card-front { display: none; }
+    .flip-card.active .flip-card-back { display: flex; transform: none; }
+    .flip-card:hover .flip-card-inner { transform: none; }
     
     .surprise-box { padding: 40px 20px; }
-    .contact-link { flex-direction: column; justify-content: center; gap: 8px; padding: 16px 12px; text-align: center;}
-    .c-val { word-break: break-word; font-size: 13px; }
+    .contact-link { flex-direction: column; align-items: center; text-align: center; padding: 16px 12px; gap: 8px; }
+    .c-val { word-break: break-all; font-size: 13px; text-align: center; width: 100%; }
     
     .cue-widget-btn { width: 50px; height: 50px; font-size: 16px; bottom: 20px; right: 20px; }
 }
@@ -567,17 +574,19 @@ footer { text-align: center; padding: 64px 0 40px; font-size: 14.5px; color: var
 
 <div class="wrap">
 <nav>
-  <div class="nav-logo"><div class="dot"></div> Rishab Dhar</div>
+  <div class="nav-logo">
+      <span class="dot" style="display:inline-block; margin-right:8px;"></span> Rishab Dhar
+  </div>
   <div class="nav-links">
     <a href="#exp">Impact</a>
     <a href="#projects">Architecture</a>
     <a href="#assets">Assets</a>
     <a href="#contact">Contact</a>
-    <button id="theme-toggle" class="theme-toggle" aria-label="Toggle Theme">
-      <span class="sun">☀️</span>
-      <span class="moon">🌙</span>
-    </button>
   </div>
+  <button id="theme-toggle" class="theme-toggle" aria-label="Toggle Theme">
+    <span class="sun">☀️</span>
+    <span class="moon">🌙</span>
+  </button>
 </nav>
 
 <div class="hero">
@@ -988,7 +997,6 @@ window.addEventListener('resize', () => {
     drops = [];
     for (let x = 0; x < columns; x++) drops[x] = 1;
 });
-// Trigger initial resize sync
 window.dispatchEvent(new Event('resize'));
 
 
@@ -1250,7 +1258,16 @@ document.querySelectorAll('.exp-bullets').forEach(el => bulletObserver.observe(e
 // Tactile Mobile Flip Cards
 document.querySelectorAll('.flip-card').forEach(card => {
     card.addEventListener('click', function() {
-        this.classList.toggle('active');
+        if (window.innerWidth <= 600) {
+            const isFront = this.querySelector('.flip-card-front').style.display !== 'none';
+            if (isFront) {
+                this.querySelector('.flip-card-front').style.display = 'none';
+                this.querySelector('.flip-card-back').style.display = 'flex';
+            } else {
+                this.querySelector('.flip-card-back').style.display = 'none';
+                this.querySelector('.flip-card-front').style.display = 'flex';
+            }
+        }
     });
 });
 
@@ -1264,7 +1281,7 @@ window.addEventListener('mousemove', (e) => {
     cursorOutline.animate({ left: `${e.clientX}px`, top: `${e.clientY}px` }, { duration: 150, fill: "forwards" });
 });
 
-const interactiveElements = document.querySelectorAll('a, .btn, button, .flip-card, .cue-widget-btn, .close-cue, .asset-card');
+const interactiveElements = document.querySelectorAll('a, .btn, button, .flip-card, .cue-widget-btn, .close-cue, .asset-card, .hex');
 interactiveElements.forEach(el => {
     el.addEventListener('mouseenter', () => {
         cursorOutline.style.width = '45px'; cursorOutline.style.height = '45px';
@@ -1279,7 +1296,7 @@ interactiveElements.forEach(el => {
 });
 
 // Animations
-const cards = document.querySelectorAll('.exp-card, .flip-card, .surprise-container, .hero-tag, .hero-name, .hero-desc, .hero-btns, .badges, .asset-card');
+const cards = document.querySelectorAll('.exp-card, .surprise-container, .hero-tag, .hero-name, .hero-desc, .hero-btns, .badges, .asset-card');
 const obs = new IntersectionObserver(entries => {
   entries.forEach(e => {
     if(e.isIntersecting) {
