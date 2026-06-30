@@ -2,7 +2,7 @@
 <html lang="en" data-theme="dark">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Rishab Dhar — Cloud Architecture & SRE</title>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
@@ -69,17 +69,19 @@
   --transition: 0.3s ease-out;
 }
 
-/* Hard reset for mobile overflow */
+/* =========================================
+   STRICT MOBILE VIEWPORT LOCKDOWN
+   ========================================= */
 html, body { 
-    max-width: 100%; overflow-x: hidden; 
+    width: 100%; max-width: 100vw; overflow-x: hidden; 
 }
 html { scroll-behavior: smooth; cursor: none; } 
 body { 
-    width: 100%;
     background-color: var(--bg); color: var(--ink); 
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; 
     -webkit-font-smoothing: antialiased; 
     transition: background-color 0.5s ease, color 0.5s ease;
+    position: relative;
 }
 
 /* =========================================
@@ -89,6 +91,7 @@ body {
     position: fixed; top: 0; left: 0; width: 100%; height: 100vh;
     z-index: -2; pointer-events: none; transition: opacity 0.5s ease;
 }
+
 html[data-theme="dark"] #dynamic-bg { opacity: 0.25; } 
 html[data-theme="light"] #dynamic-bg { opacity: 1; } 
 
@@ -125,19 +128,19 @@ html[data-theme="light"] body::before {
     width: 0%; z-index: 999999; transition: width 0.1s; 
 }
 
-.wrap { max-width: 1100px; width: 100%; margin: 0 auto; padding: 0 5%; position: relative; z-index: 10; }
+.wrap { width: 100%; max-width: 1100px; margin: 0 auto; padding: 0 24px 100px; position: relative; z-index: 10; box-sizing: border-box; }
 
 /* =========================================
    NAVIGATION & THEME TOGGLE
    ========================================= */
 nav {
     display: flex; justify-content: space-between; align-items: center;
-    padding: 16px 24px; border-bottom: 1px solid var(--border);
+    padding: 16px 0; border-bottom: 1px solid var(--border);
     position: sticky; top: 0; background: var(--surface); 
     backdrop-filter: saturate(200%) blur(30px); -webkit-backdrop-filter: saturate(200%) blur(30px);
-    z-index: 100; margin: 0 -5vw; transition: background 0.5s, border-color 0.5s;
+    z-index: 100; transition: background 0.5s, border-color 0.5s;
 }
-.nav-logo { font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 18px; display: flex; align-items: center; gap: 10px; color: var(--ink); white-space: nowrap;}
+.nav-logo { font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 18px; display: flex; align-items: center; gap: 10px; color: var(--ink); white-space: nowrap; }
 .nav-logo .dot { width: 8px; height: 8px; background: var(--accent); border-radius: 50%; box-shadow: 0 0 12px var(--accent); animation: pulse 2s infinite; }
 @keyframes pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.5; transform: scale(0.8); } }
 
@@ -147,9 +150,9 @@ nav {
 
 .theme-toggle {
     background: transparent; border: 1px solid var(--border-strong);
-    color: var(--ink); font-size: 18px; width: 40px; height: 40px;
+    color: var(--ink); font-size: 18px; width: 40px; height: 40px; flex-shrink: 0;
     border-radius: 50%; display: flex; align-items: center; justify-content: center;
-    cursor: none; transition: all var(--spring); backdrop-filter: blur(10px); flex-shrink: 0;
+    cursor: none; transition: all var(--spring); backdrop-filter: blur(10px);
 }
 .theme-toggle:hover { background: var(--accent-faint); border-color: var(--accent); color: var(--accent); transform: scale(1.1); }
 .theme-toggle .moon { display: none; }
@@ -160,7 +163,7 @@ html[data-theme="light"] .theme-toggle .moon { display: block; }
    HERO SECTION
    ========================================= */
 .hero { padding: 120px 0 80px; display: grid; grid-template-columns: 1.2fr 1fr; gap: 60px; align-items: center; }
-.hero-left { display: flex; flex-direction: column; align-items: flex-start;}
+.hero-left { display: flex; flex-direction: column; align-items: flex-start; }
 .hero-tag { display: inline-flex; align-items: center; gap: 10px; background: var(--surface); border: 1px solid var(--border-strong); border-radius: 99px; padding: 8px 20px; font-size: 13px; font-weight: 600; color: var(--ink); margin-bottom: 32px; backdrop-filter: blur(20px); box-shadow: var(--shadow-sm);}
 .hero-tag i { color: var(--accent); font-style: normal; }
 .hero-name { font-family: 'Space Grotesk', sans-serif; font-size: clamp(42px, 6.5vw, 84px); font-weight: 700; line-height: 1.05; letter-spacing: -2px; color: var(--ink); margin-bottom: 20px; }
@@ -190,7 +193,7 @@ html[data-theme="light"] .dark-graphic { display: none; }
 /* =========================================
    LIGHT MODE: AUTONOMOUS FLUID CAROUSEL
    ========================================= */
-.iso-wrapper { position: relative; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; }
+.iso-wrapper { position: relative; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; pointer-events: none; }
 
 /* The 3D Scene */
 .iso-scene { 
@@ -241,15 +244,14 @@ html[data-theme="light"] .dark-graphic { display: none; }
 
 /* THE 2D POP-UP OVERLAY (100% Free from 3D Distortion) */
 .iso-2d-overlay {
-    position: absolute; inset: 0; pointer-events: none; z-index: 1000;
-    perspective: 1200px;
+    position: absolute; inset: 0; z-index: 1000;
+    perspective: 1200px; display: flex; align-items: center; justify-content: center;
 }
 
 .iso-popup-group {
     position: absolute; top: 50%; left: 50%;
     margin-top: -80px; margin-left: -60px; 
     display: flex; align-items: center; justify-content: flex-start;
-    pointer-events: none;
 }
 
 /* The Sticker Title (Peels Off) */
@@ -257,25 +259,19 @@ html[data-theme="light"] .dark-graphic { display: none; }
     background: var(--accent); color: white; padding: 6px 16px; border-radius: 8px;
     font-family: 'JetBrains Mono', monospace; font-size: 16px; font-weight: bold;
     box-shadow: 0 10px 25px rgba(37,99,235,0.4);
-    
     transform: rotateX(60deg) rotateZ(-45deg) translate3d(0, 40px, -40px);
-    opacity: 0; pointer-events: none;
-    transition: all 0.8s cubic-bezier(0.25, 1, 0.5, 1);
-    transform-origin: bottom center;
+    opacity: 0; transition: all 0.8s cubic-bezier(0.25, 1, 0.5, 1); transform-origin: bottom center;
 }
 
 .iso-popup-group.active .popup-sticker {
-    transform: rotateX(0deg) rotateZ(0deg) translate3d(0, 0, 0);
-    opacity: 1; pointer-events: auto;
+    transform: rotateX(0deg) rotateZ(0deg) translate3d(0, 0, 0); opacity: 1;
 }
 
-/* The Info Card */
+/* The Info Card (Slides in next to sticker) */
 .popup-card {
     background: #FFFFFF; padding: 18px 24px; border: 2px solid var(--accent); 
     color: #0F172A; border-radius: 12px; width: 240px; font-size: 13px; font-family: 'Inter', sans-serif; font-weight: 500;
-    text-align: left; box-shadow: 0 25px 50px rgba(0,0,0,0.15); pointer-events: auto;
-    margin-left: 20px;
-    
+    text-align: left; box-shadow: 0 25px 50px rgba(0,0,0,0.15); margin-left: 20px;
     transform: translateX(-20px); opacity: 0; visibility: hidden;
     transition: all 0.6s cubic-bezier(0.25, 1, 0.5, 1) 0.2s; 
 }
@@ -313,7 +309,6 @@ html[data-theme="light"] .dark-graphic { display: none; }
 }
 .hex.healing .hex-insight { opacity: 1; transform: translateX(-50%) translateY(0); }
 
-/* Badges */
 .badges { display: flex; flex-wrap: wrap; gap: 12px; margin: 0 0 80px; justify-content: center; }
 .badge { display: inline-flex; align-items: center; gap: 10px; padding: 12px 24px; border-radius: 99px; font-size: 14px; font-weight: 600; background: var(--surface); border: 1px solid var(--border-strong); color: var(--ink); backdrop-filter: blur(20px); transition: all var(--spring); box-shadow: var(--shadow-sm);}
 .badge:hover { transform: translateY(-4px); border-color: var(--accent); color: var(--accent); background: var(--accent-faint); box-shadow: 0 10px 25px var(--accent-glow); }
@@ -370,6 +365,7 @@ html[data-theme="light"] .dark-graphic { display: none; }
 .projects-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 32px; }
 .flip-card { background: transparent; height: 380px; perspective: 1500px; cursor: none; }
 .flip-card-inner { position: relative; width: 100%; height: 100%; text-align: left; transition: transform 0.8s var(--spring); transform-style: preserve-3d; }
+/* Added .active for native mobile tap toggling */
 .flip-card:hover .flip-card-inner, .flip-card.active .flip-card-inner { transform: rotateY(180deg); }
 
 .flip-card-front, .flip-card-back {
@@ -511,36 +507,32 @@ footer { text-align: center; padding: 64px 0 40px; font-size: 14.5px; color: var
 .footer-logo .dot { width: 10px; height: 10px; background: var(--accent); border-radius: 50%; box-shadow: 0 0 12px var(--accent); }
 
 /* =========================================
-   MOBILE RESPONSIVENESS OVERRIDES
+   STRICT MOBILE RESPONSIVENESS OVERRIDES
    ========================================= */
 @media (max-width: 850px) {
-    .hero { grid-template-columns: 1fr; text-align: center; gap: 40px; padding: 80px 0 40px;}
-    .hero-left { display: flex; flex-direction: column; align-items: center; }
+    .hero { grid-template-columns: 1fr; text-align: center; gap: 40px; padding: 60px 0; }
+    .hero-left { align-items: center; }
     .hero-desc { text-align: center; }
     .hero-btns { justify-content: center; }
-    .hero-graphics { transform-origin: center top; transform: scale(0.9); margin-top: 20px; }
+    
+    /* Dynamic scaling to preserve 3D math on smaller screens */
+    .light-graphic { transform: scale(0.7); height: 350px; }
+    .dark-graphic { transform: scale(0.85); height: 350px; }
 }
 
 @media (max-width: 600px) {
-    nav { flex-wrap: wrap; justify-content: center; gap: 16px; padding: 16px; margin: 0 -5%; }
-    .nav-links { flex-wrap: wrap; justify-content: center; gap: 8px;}
-    .nav-links a { padding: 6px 12px; font-size: 13px; }
+    nav { flex-direction: column; gap: 20px; }
+    .theme-toggle { position: absolute; top: 20px; right: 20px; }
     
-    .hero-graphics { transform: scale(0.75); }
-    .iso-2d-overlay { transform: scale(0.85); }
+    .light-graphic { transform: scale(0.5); height: 260px; }
+    .dark-graphic { transform: scale(0.65); height: 260px; }
     
-    .exp-card { padding: 24px; }
-    .exp-top { flex-direction: column; align-items: flex-start; gap: 8px; }
-    
-    .projects-grid { grid-template-columns: 1fr; }
-    .flip-card { height: 420px; }
+    .flip-card { min-height: 420px; height: auto; }
+    .flip-card-front, .flip-card-back { padding: 24px; }
     
     .surprise-box { padding: 40px 20px; }
-    .contact-link { flex-direction: column; text-align: center; padding: 12px; }
-    .contact-link .c-val { word-break: break-all; font-size: 13px; }
-    
-    .terminal { padding: 16px; min-height: 400px; }
-    .term-content { font-size: 12.5px; }
+    .contact-link { flex-direction: column; justify-content: center; gap: 8px; padding: 16px 12px; text-align: center;}
+    .c-val { word-break: break-word; font-size: 13px; }
     
     .cue-widget-btn { width: 50px; height: 50px; font-size: 16px; bottom: 20px; right: 20px; }
 }
@@ -550,7 +542,6 @@ footer { text-align: center; padding: 64px 0 40px; font-size: 14.5px; color: var
 
 <canvas id="dynamic-bg"></canvas>
 
-<!-- Floating Dev Humor Widget -->
 <div class="cue-widget-btn" id="cue-btn" title="Decrypt Snippet">
     {;}
 </div>
@@ -602,11 +593,9 @@ footer { text-align: center; padding: 64px 0 40px; font-size: 14.5px; color: var
   </div>
   
   <div class="hero-graphics">
-      <!-- Light Mode: Autonomous Isometric Stack -->
       <div class="light-graphic">
           <div class="iso-wrapper">
               
-              <!-- 3D Scene -->
               <div class="iso-scene">
                   <div class="iso-stack" id="iso-stack">
                       
@@ -625,7 +614,6 @@ footer { text-align: center; padding: 64px 0 40px; font-size: 14.5px; color: var
                   </div>
               </div>
 
-              <!-- 2D Overlay (Perfectly Flat Popups & Stickers) -->
               <div class="iso-2d-overlay">
                   
                   <div class="iso-popup-group active" id="popup-app">
@@ -648,7 +636,6 @@ footer { text-align: center; padding: 64px 0 40px; font-size: 14.5px; color: var
           </div>
       </div>
       
-      <!-- Dark Mode: Dynamic Self-Healing Hex Mesh -->
       <div class="dark-graphic">
           <div class="hex-mesh" id="hex-mesh">
               <div class="hex-row">
@@ -686,8 +673,7 @@ footer { text-align: center; padding: 64px 0 40px; font-size: 14.5px; color: var
     <span class="term-title">rishab@cloud-native ~ bash</span>
   </div>
   <div class="term-content" id="terminal-content">
-    <!-- JS Engine injects dynamic output here -->
-  </div>
+    </div>
 </div>
 
 <div class="section" id="exp">
@@ -819,7 +805,6 @@ footer { text-align: center; padding: 64px 0 40px; font-size: 14.5px; color: var
   </div>
 </div>
 
-<!-- SURPRISE CONTACT BOX -->
 <div class="section" id="contact">
   <div class="section-head" style="justify-content: center;"><i class="section-icon">📡</i><h2 class="section-title">Contact Info</h2></div>
   <div class="surprise-container">
@@ -996,12 +981,15 @@ function renderFrame(time) {
 requestAnimationFrame(renderFrame);
 
 window.addEventListener('resize', () => {
-    width = canvas.width = window.innerWidth;
+    // Explicitly re-read clientWidth to prevent horizontal scroll triggers
+    width = canvas.width = document.body.clientWidth;
     height = canvas.height = window.innerHeight;
     columns = Math.floor(width / fontSize);
     drops = [];
     for (let x = 0; x < columns; x++) drops[x] = 1;
 });
+// Trigger initial resize sync
+window.dispatchEvent(new Event('resize'));
 
 
 // --- LIGHT MODE: AUTONOMOUS ROTATING TRAIN ---
@@ -1259,7 +1247,7 @@ const bulletObserver = new IntersectionObserver(entries => {
 }, { threshold: 0.1 });
 document.querySelectorAll('.exp-bullets').forEach(el => bulletObserver.observe(el));
 
-// Tactile Flip Cards for Mobile
+// Tactile Mobile Flip Cards
 document.querySelectorAll('.flip-card').forEach(card => {
     card.addEventListener('click', function() {
         this.classList.toggle('active');
